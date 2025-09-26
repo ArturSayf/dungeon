@@ -1,56 +1,116 @@
 use std::io;
+#[derive(PartialEq,Debug)]
+enum Side_of_the_world{
+    North,
+    South,
+    West,
+    East,
+}
+struct Character {
+    x: i32,
+    y: i32,
+    side_of_the_world: Side_of_the_world
+}
 
-struct  Character{
-        x: i32,
-        y: i32,
-        sideOfTheWorld: String
-    }
+
 fn main() {
-    let mut p = Character{x: 0, y: 0, sideOfTheWorld: String::from("south")};
+    let mut character: Character = Character {
+        x: 0,
+        y: 0,
+        side_of_the_world: Side_of_the_world::North,
+    };
 
+    println!(
+        "Двигайтесь! (left, right, forward, back, turn left, turn right, turn around)"
+    );
     loop {
-        println!("Ваши координаты: {}.{}, Вы смотрите на {}", p.x, p.y, p.sideOfTheWorld);
-    println!("Двигайтесь! (left, right, up, down, turn north, turn east, turn south, turn west, forward)");
+        println!(
+            "Ваши координаты: {}.{}, направление на {:?}",
+            character.x, character.y, character.side_of_the_world
+        );
 
-    let mut input = String::new();
+        let mut input = String::new();
 
-    io::stdin()
-    .read_line(&mut input)
-    .expect("Ошибка!");
+        io::stdin().read_line(&mut input).expect("Ошибка!");
+        input = input.trim().to_lowercase();
+use crate::Side_of_the_world::*;
 
-        if input.contains("left"){
-            p.x -= 1;
-        } else if input.contains("right") {
-            p.x += 1;
-        } else if input.contains("up") {
-            p.y += 1;
-        } else if input.contains("down") {
-            p.y -= 1;
-        } else if input.contains("turn north") {
-            p.sideOfTheWorld = String::from("north");
-        } else if input.contains("turn south") {
-            p.sideOfTheWorld = String::from("south");
-        } else if input.contains("turn east") {
-            p.sideOfTheWorld = String::from("east");
-        } else if input.contains("turn west") {
-            p.sideOfTheWorld = String::from("west");
-        } else if input.contains("forward") {
-            if p.sideOfTheWorld == "north"{
-                p.y += 1;
-            } else if p.sideOfTheWorld == "south" {
-                p.y -= 1;
-            } else if p.sideOfTheWorld == "east" {
-                p.x += 1;
-            } else if p.sideOfTheWorld == "west" {
-                p.x -= 1;
-            } else {
-                println!("Неверная команда");
-            }
-        } else {
-            println!("Неверная команда");
-            break;
-        }   
+        match input.as_str() {
+            "turn left" => {
+                character.side_of_the_world = match character.side_of_the_world {
+                    North => West,
+                    South => East,
+                    East => North,
+                    West => South,
+                };
+            },
+            "turn right" => {
+                if character.side_of_the_world == Side_of_the_world::North {
+                    character.side_of_the_world = Side_of_the_world::East;
+                } else if character.side_of_the_world == Side_of_the_world::South {
+                    character.side_of_the_world = Side_of_the_world::West;
+                } else if character.side_of_the_world == Side_of_the_world::East {
+                    character.side_of_the_world = Side_of_the_world::South;
+                } else if character.side_of_the_world == Side_of_the_world::West {
+                    character.side_of_the_world = Side_of_the_world::North;
+                }
+            },
+            "turn around" => {
+                if character.side_of_the_world == Side_of_the_world::North {
+                    character.side_of_the_world = Side_of_the_world::South;
+                } else if character.side_of_the_world == Side_of_the_world::South {
+                    character.side_of_the_world = Side_of_the_world::North;
+                } else if character.side_of_the_world == Side_of_the_world::East {
+                    character.side_of_the_world = Side_of_the_world::West;
+                } else if character.side_of_the_world == Side_of_the_world::West {
+                    character.side_of_the_world = Side_of_the_world::East;
+                }
+            },
+            "forward" => {
+                if character.side_of_the_world == Side_of_the_world::North {
+                    character.y += 1;
+                } else if character.side_of_the_world == Side_of_the_world::South {
+                    character.y -= 1;
+                } else if character.side_of_the_world == Side_of_the_world::East {
+                    character.x += 1;
+                } else if character.side_of_the_world == Side_of_the_world::West {
+                    character.x -= 1;
+                }
+            },
+            "back" => {
+                if character.side_of_the_world == Side_of_the_world::North {
+                    character.y -= 1;
+                } else if character.side_of_the_world == Side_of_the_world::South {
+                    character.y += 1;
+                } else if character.side_of_the_world == Side_of_the_world::East {
+                    character.x -= 1;
+                } else if character.side_of_the_world == Side_of_the_world::West {
+                    character.x += 1;
+                }
+            },
+            "left" => {
+                if character.side_of_the_world == Side_of_the_world::North {
+                    character.x -= 1;
+                } else if character.side_of_the_world == Side_of_the_world::South {
+                    character.x += 1;
+                } else if character.side_of_the_world == Side_of_the_world::East {
+                    character.y += 1;
+                } else if character.side_of_the_world == Side_of_the_world::West {
+                    character.y -= 1;
+                }
+            },
+            "right" => {
+                if character.side_of_the_world == Side_of_the_world::North {
+                    character.x += 1;
+                } else if character.side_of_the_world == Side_of_the_world::South {
+                    character.x -= 1;
+                } else if character.side_of_the_world == Side_of_the_world::East {
+                    character.y -= 1;
+                } else if character.side_of_the_world == Side_of_the_world::West {
+                    character.y += 1;
+                }
+            },
+            _ => println!("Неверная команда!"),
+        }
     }
-
-    
 }
