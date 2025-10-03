@@ -1,6 +1,7 @@
 use std::io;
-#[derive(PartialEq,Debug)]
-enum Side_of_the_world{
+
+#[derive(PartialEq, Debug)]
+enum SideOfTheWorld {
     North,
     South,
     West,
@@ -9,20 +10,48 @@ enum Side_of_the_world{
 struct Character {
     x: i32,
     y: i32,
-    side_of_the_world: Side_of_the_world
+    side_of_the_world: SideOfTheWorld,
 }
 
+#[derive(PartialEq)]
+enum Cell {
+    Wall,
+    Pass,
+}
+
+const FIELD_HEIGHT: usize = 5;
+const FIELD_WIDTH: usize = 5;
+
+fn valid_move(field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT], x:i32, y:i32) -> bool{
+    if x >= 0 && x < FIELD_WIDTH as i32 && y >= 0 && y < FIELD_HEIGHT as i32{
+        if field[y as usize][x as usize] == Cell::Pass{
+            return true;
+        } else {
+            println!("Стена!");
+            false
+        }
+    } else {
+        println!("Стена!");
+        false
+    }
+}
 
 fn main() {
+    let field: [[Cell; 5]; 5] = [
+        [Cell::Pass, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Pass],
+        [Cell::Wall, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Pass],
+        [Cell::Wall, Cell::Pass, Cell::Wall, Cell::Pass, Cell::Pass],
+        [Cell::Pass, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Pass],
+        [Cell::Wall, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass],
+    ];
+
     let mut character: Character = Character {
         x: 0,
         y: 0,
-        side_of_the_world: Side_of_the_world::North,
+        side_of_the_world: SideOfTheWorld::North,
     };
 
-    println!(
-        "Двигайтесь! (left, right, forward, back, turn left, turn right, turn around)"
-    );
+    println!("Двигайтесь! (left, right, forward, back, turn left, turn right, turn around)");
     loop {
         println!(
             "Ваши координаты: {}.{}, направление на {:?}",
@@ -33,7 +62,7 @@ fn main() {
 
         io::stdin().read_line(&mut input).expect("Ошибка!");
         input = input.trim().to_lowercase();
-use crate::Side_of_the_world::*;
+        use crate::SideOfTheWorld::*;
 
         match input.as_str() {
             "turn left" => {
@@ -43,7 +72,7 @@ use crate::Side_of_the_world::*;
                     East => North,
                     West => South,
                 };
-            },
+            }
             "turn right" => {
                 character.side_of_the_world = match character.side_of_the_world {
                     North => East,
@@ -51,7 +80,7 @@ use crate::Side_of_the_world::*;
                     East => South,
                     West => North,
                 };
-            },
+            }
             "turn around" => {
                 character.side_of_the_world = match character.side_of_the_world {
                     North => South,
@@ -59,38 +88,30 @@ use crate::Side_of_the_world::*;
                     East => West,
                     West => East,
                 };
+            }
+            "forward" => match character.side_of_the_world {
+                SideOfTheWorld::North => if valid_move(&field, character.x, character.y - 1) {character.y -= 1},
+                SideOfTheWorld::South => if valid_move(&field,character.x, character.y + 1) {character.y += 1},
+                SideOfTheWorld::East => if valid_move(&field,character.x + 1, character.y) {character.x += 1},
+                SideOfTheWorld::West => if valid_move(&field,character.x - 1, character.y) {character.x -= 1},
             },
-            "forward" => {
-                match character.side_of_the_world {
-                    Side_of_the_world::North => character.y += 1,
-                    Side_of_the_world::South => character.y -= 1,
-                    Side_of_the_world::East => character.x += 1,
-                    Side_of_the_world::West => character.x -= 1,
-                }
+            "back" => match character.side_of_the_world {
+                SideOfTheWorld::North => if valid_move(&field,character.x, character.y + 1) {character.y += 1},
+                SideOfTheWorld::South => if valid_move(&field,character.x, character.y - 1) {character.y -= 1},
+                SideOfTheWorld::East => if valid_move(&field,character.x - 1, character.y) {character.x -= 1},
+                SideOfTheWorld::West => if valid_move(&field,character.x + 1, character.y) {character.x += 1},
             },
-            "back" => {
-                match character.side_of_the_world {
-                    Side_of_the_world::North => character.y -= 1,
-                    Side_of_the_world::South => character.y += 1,
-                    Side_of_the_world::East => character.x -= 1,
-                    Side_of_the_world::West => character.x += 1,
-                }
+            "left" => match character.side_of_the_world {
+                SideOfTheWorld::North => if valid_move(&field,character.x - 1, character.y) {character.x -= 1},
+                SideOfTheWorld::South => if valid_move(&field,character.x + 1, character.y) {character.x += 1},
+                SideOfTheWorld::East => if valid_move(&field,character.x, character.y - 1) {character.y -= 1},
+                SideOfTheWorld::West => if valid_move(&field,character.x, character.y + 1) {character.y += 1},
             },
-            "left" => {
-                match character.side_of_the_world {
-                    Side_of_the_world::North => character.x -= 1,
-                    Side_of_the_world::South => character.x += 1,
-                    Side_of_the_world::East => character.y += 1,
-                    Side_of_the_world::West => character.y -= 1,
-                }
-            },
-            "right" => {
-                match character.side_of_the_world {
-                    Side_of_the_world::North => character.x += 1,
-                    Side_of_the_world::South => character.x -= 1,
-                    Side_of_the_world::East => character.y -= 1,
-                    Side_of_the_world::West => character.y += 1,
-                }
+            "right" => match character.side_of_the_world {
+                SideOfTheWorld::North => if valid_move(&field,character.x + 1, character.y) {character.x += 1},
+                SideOfTheWorld::South => if valid_move(&field,character.x - 1, character.y) {character.x -= 1},
+                SideOfTheWorld::East => if valid_move(&field,character.x, character.y + 1) {character.y += 1},
+                SideOfTheWorld::West => if valid_move(&field,character.x, character.y - 1) {character.y -= 1},
             },
             _ => println!("Неверная команда!"),
         }
