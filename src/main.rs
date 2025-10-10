@@ -1,4 +1,4 @@
-use std::io;
+use std::{io, usize};
 
 #[derive(PartialEq, Debug)]
 enum SideOfTheWorld {
@@ -8,9 +8,99 @@ enum SideOfTheWorld {
     East,
 }
 struct Character {
-    x: i32,
-    y: i32,
+    x: usize,
+    y: usize,
     side_of_the_world: SideOfTheWorld,
+}
+
+impl Character {
+    fn valid_move(&mut self, dx: isize, dy: isize, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool{
+    let nx = self.x as isize + dx;
+    let ny = self.y as isize + dy;
+
+    if nx < 0 || ny < 0 {
+        false;
+    }
+
+    let  nx = nx as usize;
+    let  ny = ny as usize;
+
+    if nx < FIELD_WIDTH && ny < FIELD_HEIGHT{
+        if field[ny][nx] == Cell::Pass{
+            self.x = nx;
+            self.y = ny;
+            true
+        } else {
+            false
+        }
+    } else {
+        false
+    }
+
+}
+
+    fn move_forward(&mut self, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool {
+        match self.side_of_the_world {
+            SideOfTheWorld::North => self.valid_move(0,-1, field),
+            SideOfTheWorld::South => self.valid_move(0, 1, field),
+            SideOfTheWorld::East => self.valid_move(1, 0, field),
+            SideOfTheWorld::West => self.valid_move(-1, 0, field),
+        }
+    }
+
+    fn move_back(&mut self, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool {
+        match self.side_of_the_world {
+            SideOfTheWorld::North => self.valid_move(0,1, field),
+            SideOfTheWorld::South => self.valid_move(0, -1, field),
+            SideOfTheWorld::East => self.valid_move(-1, 0, field),
+            SideOfTheWorld::West => self.valid_move(1, 0, field),
+        }
+    }
+
+    fn move_left(&mut self, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool {
+        match self.side_of_the_world {
+            SideOfTheWorld::North => self.valid_move(-1,0, field),
+            SideOfTheWorld::South => self.valid_move(1, 0, field),
+            SideOfTheWorld::East => self.valid_move(0, -1, field),
+            SideOfTheWorld::West => self.valid_move(0, 1, field),
+        }
+    }
+
+    fn move_right(&mut self, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool {
+        match self.side_of_the_world {
+            SideOfTheWorld::North => self.valid_move(1,0, field),
+            SideOfTheWorld::South => self.valid_move(-1, 0, field),
+            SideOfTheWorld::East => self.valid_move(0, 1, field),
+            SideOfTheWorld::West => self.valid_move(0, -1, field),
+        }
+    }
+
+    fn turn_left(&mut self) {
+        self.side_of_the_world = match self.side_of_the_world {
+            SideOfTheWorld::North => SideOfTheWorld::West,
+            SideOfTheWorld::South => SideOfTheWorld::East,
+            SideOfTheWorld::East => SideOfTheWorld::North,
+            SideOfTheWorld::West => SideOfTheWorld::South,
+        }
+    }
+
+    fn turn_right(&mut self) {
+        self.side_of_the_world = match self.side_of_the_world {
+            SideOfTheWorld::North => SideOfTheWorld::East,
+            SideOfTheWorld::South => SideOfTheWorld::West,
+            SideOfTheWorld::East => SideOfTheWorld::South,
+            SideOfTheWorld::West => SideOfTheWorld::North,
+        }
+    }
+
+    fn turn_around(&mut self) {
+        self.side_of_the_world = match self.side_of_the_world {
+            SideOfTheWorld::North => SideOfTheWorld::South,
+            SideOfTheWorld::South => SideOfTheWorld::North,
+            SideOfTheWorld::East => SideOfTheWorld::West,
+            SideOfTheWorld::West => SideOfTheWorld::East,
+        }
+    }
 }
 
 #[derive(PartialEq)]
@@ -21,20 +111,6 @@ enum Cell {
 
 const FIELD_HEIGHT: usize = 5;
 const FIELD_WIDTH: usize = 5;
-
-fn valid_move(field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT], x:i32, y:i32) -> bool{
-    if x >= 0 && x < FIELD_WIDTH as i32 && y >= 0 && y < FIELD_HEIGHT as i32{
-        if field[y as usize][x as usize] == Cell::Pass{
-            return true;
-        } else {
-            println!("Стена!");
-            false
-        }
-    } else {
-        println!("Стена!");
-        false
-    }
-}
 
 fn main() {
     let field: [[Cell; 5]; 5] = [
@@ -62,56 +138,40 @@ fn main() {
 
         io::stdin().read_line(&mut input).expect("Ошибка!");
         input = input.trim().to_lowercase();
-        use crate::SideOfTheWorld::*;
 
         match input.as_str() {
             "turn left" => {
-                character.side_of_the_world = match character.side_of_the_world {
-                    North => West,
-                    South => East,
-                    East => North,
-                    West => South,
-                };
+                character.turn_left();
             }
             "turn right" => {
-                character.side_of_the_world = match character.side_of_the_world {
-                    North => East,
-                    South => West,
-                    East => South,
-                    West => North,
-                };
+                character.turn_right();
             }
             "turn around" => {
-                character.side_of_the_world = match character.side_of_the_world {
-                    North => South,
-                    South => North,
-                    East => West,
-                    West => East,
-                };
+                character.turn_around();
             }
-            "forward" => match character.side_of_the_world {
-                SideOfTheWorld::North => if valid_move(&field, character.x, character.y - 1) {character.y -= 1},
-                SideOfTheWorld::South => if valid_move(&field,character.x, character.y + 1) {character.y += 1},
-                SideOfTheWorld::East => if valid_move(&field,character.x + 1, character.y) {character.x += 1},
-                SideOfTheWorld::West => if valid_move(&field,character.x - 1, character.y) {character.x -= 1},
+            "forward" => {
+                character.move_forward(&field);
+                if !character.move_forward(&field) {
+                    println!("Стена!")
+                }
             },
-            "back" => match character.side_of_the_world {
-                SideOfTheWorld::North => if valid_move(&field,character.x, character.y + 1) {character.y += 1},
-                SideOfTheWorld::South => if valid_move(&field,character.x, character.y - 1) {character.y -= 1},
-                SideOfTheWorld::East => if valid_move(&field,character.x - 1, character.y) {character.x -= 1},
-                SideOfTheWorld::West => if valid_move(&field,character.x + 1, character.y) {character.x += 1},
+            "back" => {
+                character.move_back(&field);
+                if !character.move_forward(&field) {
+                    println!("Стена!")
+                }
             },
-            "left" => match character.side_of_the_world {
-                SideOfTheWorld::North => if valid_move(&field,character.x - 1, character.y) {character.x -= 1},
-                SideOfTheWorld::South => if valid_move(&field,character.x + 1, character.y) {character.x += 1},
-                SideOfTheWorld::East => if valid_move(&field,character.x, character.y - 1) {character.y -= 1},
-                SideOfTheWorld::West => if valid_move(&field,character.x, character.y + 1) {character.y += 1},
+            "left" => {
+                character.move_left(&field);
+                if !character.move_forward(&field) {
+                    println!("Стена!")
+                }
             },
-            "right" => match character.side_of_the_world {
-                SideOfTheWorld::North => if valid_move(&field,character.x + 1, character.y) {character.x += 1},
-                SideOfTheWorld::South => if valid_move(&field,character.x - 1, character.y) {character.x -= 1},
-                SideOfTheWorld::East => if valid_move(&field,character.x, character.y + 1) {character.y += 1},
-                SideOfTheWorld::West => if valid_move(&field,character.x, character.y - 1) {character.y -= 1},
+            "right" => {
+                character.move_right(&field);
+                if !character.move_forward(&field) {
+                    println!("Стена!")
+                }
             },
             _ => println!("Неверная команда!"),
         }
