@@ -15,15 +15,24 @@ struct Character {
 
 impl Character {
     fn valid_move(&mut self, dx: isize, dy: isize, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool{
-    let nx = self.x as isize + dx;
-    let ny = self.y as isize + dy;
+    /*let nx = self.x as isize;
+    let ny = self.y as isize;
 
     if nx < 0 || ny < 0 {
         false;
     }
 
     let  nx = nx as usize;
-    let  ny = ny as usize;
+    let  ny = ny as usize;*/
+
+    let nx = match self.x.checked_add_signed(dx) {
+      Some(v) => v,
+      None => return false,  
+    };
+    let ny = match self.y.checked_add_signed(dy) {
+      Some(v) => v,
+      None => return false,  
+    };
 
     if nx < FIELD_WIDTH && ny < FIELD_HEIGHT{
         if field[ny][nx] == Cell::Pass{
@@ -46,6 +55,7 @@ impl Character {
             SideOfTheWorld::East => self.valid_move(1, 0, field),
             SideOfTheWorld::West => self.valid_move(-1, 0, field),
         }
+
     }
 
     fn move_back(&mut self, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool {
@@ -107,18 +117,24 @@ impl Character {
 enum Cell {
     Wall,
     Pass,
+    Door,
+    Key,
 }
 
-const FIELD_HEIGHT: usize = 5;
-const FIELD_WIDTH: usize = 5;
+const FIELD_HEIGHT: usize = 9;
+const FIELD_WIDTH: usize = 6;
 
 fn main() {
-    let field: [[Cell; 5]; 5] = [
-        [Cell::Pass, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Pass],
-        [Cell::Wall, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Pass],
-        [Cell::Wall, Cell::Pass, Cell::Wall, Cell::Pass, Cell::Pass],
-        [Cell::Pass, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Pass],
-        [Cell::Wall, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass],
+    let field: [[Cell; FIELD_WIDTH]; FIELD_HEIGHT] = [
+        [Cell::Pass, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall],
+        [Cell::Wall, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Key],
+        [Cell::Wall, Cell::Pass, Cell::Wall, Cell::Pass, Cell::Pass, Cell::Wall],
+        [Cell::Pass, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall],
+        [Cell::Wall, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass],
+        [Cell::Pass, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall],
+        [Cell::Door, Cell::Wall, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass],
+        [Cell::Pass, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Pass],
+        [Cell::Pass, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Pass],
     ];
 
     let mut character: Character = Character {
@@ -150,26 +166,22 @@ fn main() {
                 character.turn_around();
             }
             "forward" => {
-                character.move_forward(&field);
                 if !character.move_forward(&field) {
                     println!("Стена!")
                 }
             },
             "back" => {
-                character.move_back(&field);
-                if !character.move_forward(&field) {
+                if !character.move_back(&field) {
                     println!("Стена!")
                 }
             },
             "left" => {
-                character.move_left(&field);
-                if !character.move_forward(&field) {
+                if !character.move_left(&field) {
                     println!("Стена!")
                 }
             },
             "right" => {
-                character.move_right(&field);
-                if !character.move_forward(&field) {
+                if !character.move_right(&field) {
                     println!("Стена!")
                 }
             },
