@@ -1,6 +1,6 @@
 use std::{io, usize};
 
-#[derive(PartialEq, Debug)]
+ #[derive(PartialEq, Debug, Clone, Copy)]
 enum SideOfTheWorld {
     North,
     South,
@@ -11,19 +11,11 @@ struct Character {
     x: usize,
     y: usize,
     side_of_the_world: SideOfTheWorld,
+    has_key: bool,
 }
 
 impl Character {
-    fn valid_move(&mut self, dx: isize, dy: isize, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool{
-    /*let nx = self.x as isize;
-    let ny = self.y as isize;
-
-    if nx < 0 || ny < 0 {
-        false;
-    }
-
-    let  nx = nx as usize;
-    let  ny = ny as usize;*/
+    fn valid_move(&mut self, dx: isize, dy: isize, field: &mut[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool{
 
     let nx = match self.x.checked_add_signed(dx) {
       Some(v) => v,
@@ -35,12 +27,31 @@ impl Character {
     };
 
     if nx < FIELD_WIDTH && ny < FIELD_HEIGHT{
-        if field[ny][nx] == Cell::Pass{
-            self.x = nx;
-            self.y = ny;
-            true
-        } else {
-            false
+        match field[ny][nx] {
+            Cell::Wall => false,
+            Cell::Pass => {
+                self.x = nx;
+                self.y = ny;
+                true
+            }
+            Cell::Door => {
+                if self.has_key {
+                        self.x = nx;
+                        self.y = ny;
+                        true
+                    } else {
+                        false
+                    }
+            }
+            Cell::Key => {
+                self.x = nx;
+                    self.y = ny;
+                    if !self.has_key {
+                        self.has_key = true;
+                        field[ny][nx] = Cell::Pass;
+                    }
+                    true
+            }
         }
     } else {
         false
@@ -48,7 +59,7 @@ impl Character {
 
 }
 
-    fn move_forward(&mut self, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool {
+    fn move_forward(&mut self, field: &mut [[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool {
         match self.side_of_the_world {
             SideOfTheWorld::North => self.valid_move(0,-1, field),
             SideOfTheWorld::South => self.valid_move(0, 1, field),
@@ -58,7 +69,7 @@ impl Character {
 
     }
 
-    fn move_back(&mut self, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool {
+    fn move_back(&mut self, field: &mut [[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool {
         match self.side_of_the_world {
             SideOfTheWorld::North => self.valid_move(0,1, field),
             SideOfTheWorld::South => self.valid_move(0, -1, field),
@@ -67,7 +78,7 @@ impl Character {
         }
     }
 
-    fn move_left(&mut self, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool {
+    fn move_left(&mut self, field: &mut [[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool {
         match self.side_of_the_world {
             SideOfTheWorld::North => self.valid_move(-1,0, field),
             SideOfTheWorld::South => self.valid_move(1, 0, field),
@@ -76,7 +87,7 @@ impl Character {
         }
     }
 
-    fn move_right(&mut self, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool {
+    fn move_right(&mut self, field: &mut [[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool {
         match self.side_of_the_world {
             SideOfTheWorld::North => self.valid_move(1,0, field),
             SideOfTheWorld::South => self.valid_move(-1, 0, field),
@@ -111,9 +122,14 @@ impl Character {
             SideOfTheWorld::West => SideOfTheWorld::East,
         }
     }
+
+    /*fn open_door(&mut self, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool{
+        if self.x = 
+    }*/
+
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 enum Cell {
     Wall,
     Pass,
@@ -124,8 +140,40 @@ enum Cell {
 const FIELD_HEIGHT: usize = 9;
 const FIELD_WIDTH: usize = 6;
 
+fn draw_field(character: &Character, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) {
+    print!("\x1bc");
+
+    for y in 0..FIELD_HEIGHT {
+        for x in 0..FIELD_WIDTH {
+            if character.x == x && character.y == y {
+                match character.side_of_the_world {
+                    SideOfTheWorld::North => print!("^"),
+                    SideOfTheWorld::South => print!("v"),
+                    SideOfTheWorld::East => print!(">"),
+                    SideOfTheWorld::West => print!("<"),
+                }
+            } else {
+                match field[y][x] {
+                    Cell::Wall => print!("#"),
+                    Cell::Pass => print!(" "),
+                    Cell::Door => print!("D"),
+                    Cell::Key => print!("K"),
+                }
+            }
+        }
+        println!();
+    }
+    println!();
+
+    if character.has_key {
+        println!("У вас есть ключ!");
+    } else {
+        println!("Ключ не найден.");
+    }
+}
+
 fn main() {
-    let field: [[Cell; FIELD_WIDTH]; FIELD_HEIGHT] = [
+    let mut field: [[Cell; FIELD_WIDTH]; FIELD_HEIGHT] = [
         [Cell::Pass, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall],
         [Cell::Wall, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Key],
         [Cell::Wall, Cell::Pass, Cell::Wall, Cell::Pass, Cell::Pass, Cell::Wall],
@@ -136,14 +184,29 @@ fn main() {
         [Cell::Pass, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Pass],
         [Cell::Pass, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Pass],
     ];
+    /*
+    ________
+	|^ ## #|
+	|# ## K|
+	|# #  #|
+	|  ## #|
+	|#     |
+	|  ## #|
+	|D#    |
+	| ## # |
+	| ## # |
+    ////////
+     */
 
     let mut character: Character = Character {
         x: 0,
         y: 0,
         side_of_the_world: SideOfTheWorld::North,
+        has_key: false,
     };
 
     println!("Двигайтесь! (left, right, forward, back, turn left, turn right, turn around)");
+    draw_field(&character, &field);
     loop {
         println!(
             "Ваши координаты: {}.{}, направление на {:?}",
@@ -151,41 +214,55 @@ fn main() {
         );
 
         let mut input = String::new();
+        io::stdin().read_line(&mut input).expect("Ошибка ввода!");
+        let command = input.trim().to_lowercase();
+        let mut made_action = false;
 
-        io::stdin().read_line(&mut input).expect("Ошибка!");
-        input = input.trim().to_lowercase();
-
-        match input.as_str() {
+        match command.as_str() {
             "turn left" => {
                 character.turn_left();
+                made_action = true;
             }
             "turn right" => {
                 character.turn_right();
+                made_action = true;
             }
             "turn around" => {
                 character.turn_around();
+                made_action = true;
             }
             "forward" => {
-                if !character.move_forward(&field) {
-                    println!("Стена!")
+                if character.move_forward(&mut field) {
+                    made_action = true;
+                } else {
+                    println!("Нельзя пройти!");
                 }
             },
             "back" => {
-                if !character.move_back(&field) {
-                    println!("Стена!")
+                if character.move_back(&mut field) {
+                    made_action = true;
+                } else {
+                    println!("Нельзя пройти!");
                 }
             },
             "left" => {
-                if !character.move_left(&field) {
-                    println!("Стена!")
+                if character.move_left(&mut field) {
+                    made_action = true;
+                } else {
+                    println!("Нельзя пройти!");
                 }
             },
             "right" => {
-                if !character.move_right(&field) {
-                    println!("Стена!")
+                if character.move_right(&mut field) {
+                    made_action = true;
+                } else {
+                    println!("Нельзя пройти!");
                 }
             },
             _ => println!("Неверная команда!"),
+        }
+        if made_action {
+            draw_field(&character, &field);
         }
     }
 }
