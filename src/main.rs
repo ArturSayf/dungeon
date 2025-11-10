@@ -1,4 +1,4 @@
-use std::{io, usize};
+use std::{io, usize, fmt};
 
  #[derive(PartialEq, Debug, Clone, Copy)]
 enum SideOfTheWorld {
@@ -7,6 +7,75 @@ enum SideOfTheWorld {
     West,
     East,
 }
+
+impl fmt::Display for SideOfTheWorld {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SideOfTheWorld::North => write!(f, "Север"),
+            SideOfTheWorld::South => write!(f, "Юг"),
+            SideOfTheWorld::West => write!(f, "Запад"),
+            SideOfTheWorld::East => write!(f, "Восток"),
+        }
+    }
+}
+
+enum Cell {
+    Wall,
+    Pass,
+    Door { direction: SideOfTheWorld },
+    Key,
+}
+
+impl fmt::Display for Cell {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Cell::Wall => write!(f, "Стена"),
+            Cell::Pass => write!(f, "Проход"),
+            Cell::Door { .. } => write!(f, "Дверь"),
+            Cell::Key => write!(f, "Ключ"),
+        }
+    }
+}
+
+enum Command {
+    Forward,
+    Back,
+    Left,
+    Right,
+    TurnLeft,
+    TurnRight,
+    TurnAround,
+}
+
+impl fmt::Display for Command {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Command::Forward => write!(f, "w"),
+            Command::Back => write!(f, "s"),
+            Command::Left => write!(f, "a"),
+            Command::Right => write!(f, "d"),
+            Command::TurnLeft => write!(f, "q"),
+            Command::TurnRight => write!(f, "e"),
+            Command::TurnAround => write!(f, "z"),
+        }
+    }
+}
+
+impl Command {
+    fn from_str(s: &str) -> Option<Self> {
+        match s.to_lowercase().as_str() {
+            "forward" | "w" => Some(Command::Forward),
+            "back" | "s" => Some(Command::Back),
+            "left" | "a" => Some(Command::Left),
+            "right" | "d" => Some(Command::Right),
+            "turn left" | "q" => Some(Command::TurnLeft),
+            "turn right" | "e" => Some(Command::TurnRight),
+            "turn around" | "z" => Some(Command::TurnAround),
+            _ => None,
+        }
+    }
+}
+
 struct Character {
     x: usize,
     y: usize,
@@ -34,7 +103,7 @@ impl Character {
                 self.y = ny;
                 true
             }
-            Cell::Door => {
+            Cell::Door  {direction: _ }=> {
                 if self.has_key {
                         self.x = nx;
                         self.y = ny;
@@ -124,17 +193,9 @@ impl Character {
     }
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
-enum Cell {
-    Wall,
-    Pass,
-    Door,
-    Key,
-}
-
 const FIELD_HEIGHT: usize = 9;
 const FIELD_WIDTH: usize = 6;
-/* 
+
 const WALLS: [&str; 13] = [
 r#"╔════════════════════════╗
 ║````````````````````````║
@@ -1077,10 +1138,87 @@ const DOORS: [[&str; 4]; 13] = [
     ],
 ];
 
-fn fpv(character: &Character, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]){
-    
+fn fpv(character: &Character, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) {
+    #[rustfmt::skip]
+    let fov = [
+        (2, 3), (-2, 3), (1, 3), (-1, 3), (0, 3),
+        (1, 2), (-1, 2), (0, 2),
+        (1, 1), (-1, 1), (0, 1),
+        (1, 0), (-1, 0),
+    ];
+
+    let turn_fov = match character.side_of_the_world {
+        SideOfTheWorld::South => fov,
+        SideOfTheWorld::North => fov.map(|(dx, dy)| (-dx, -dy)),
+        SideOfTheWorld::West => fov.map(|(dx, dy)| (-dy, dx)),
+        SideOfTheWorld::East => fov.map(|(dx, dy)| (dy, -dx)),
+    };
+
+    let mut view = [[' '; 26]; 14];
+
+    for (index, (dx, dy)) in turn_fov.into_iter().enumerate() {
+        let nx = character.x as isize + dx;
+        let ny = character.y as isize + dy;
+
+        if nx >= 0 && nx < FIELD_WIDTH as isize && ny >= 0 && ny < FIELD_HEIGHT as isize {
+            match field[ny as usize][nx as usize] {
+                Cell::Wall => draw(&mut view, WALLS[index]),
+                Cell::Door { direction: door_direction } => {
+                    let door_index = match (door_direction as i32 - character.side_of_the_world as i32).rem_euclid(4) {
+                        0 => 0,
+                        1 => 1,
+                        2 => 2,
+                        3 => 3,
+                        _ => 0,
+                    };
+                    draw(&mut view, DOORS[index][door_index]);
+                }
+                Cell::Key => {
+                    continue;
+                }
+                Cell::Pass => continue,
+            }
+        } else {
+            draw(&mut view, WALLS[index]);
+        }
+    }
+
+    for line in view {
+        for ch in line {
+            print!("{}", ch);
+        }
+        println!();
+    }
+    println!();
 }
-*/
+
+fn draw(view: &mut [[char; 26]; 14], image: &str) {
+    for (y, line) in image.lines().enumerate() {
+        if y >= 14 {
+            break;
+        }
+        for (x, ch) in line.chars().enumerate() {
+            if x >= 26 {
+                break;
+            }
+            if ch != '`' {
+                view[y][x] = ch;
+            }
+        }
+    }
+}
+
+fn print_available_commands() {
+    println!("Доступные команды:");
+    println!("  {} - движение вперед", Command::Forward);
+    println!("  {} - движение назад", Command::Back);
+    println!("  {} - движение влево", Command::Left);
+    println!("  {} - движение вправо", Command::Right);
+    println!("  {} - поворот налево", Command::TurnLeft);
+    println!("  {} - поворот направо", Command::TurnRight);
+    println!("  {} - разворот", Command::TurnAround);
+}
+
 fn main() {
     let mut field: [[Cell; FIELD_WIDTH]; FIELD_HEIGHT] = [
         [Cell::Pass, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall],
@@ -1089,9 +1227,9 @@ fn main() {
         [Cell::Pass, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall],
         [Cell::Wall, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass],
         [Cell::Pass, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall],
-        [Cell::Door, Cell::Wall, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass],
+        [Cell::Pass, Cell::Wall, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass],
         [Cell::Pass, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Pass],
-        [Cell::Pass, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Pass],
+        [Cell::Pass, Cell::Wall, Cell::Wall, Cell::Door { direction: SideOfTheWorld::South }, Cell::Wall, Cell::Pass],
     ];
     /*
     ________
@@ -1101,9 +1239,9 @@ fn main() {
 	|  ## #|
 	|#     |
 	|  ## #|
-	|D#    |
+	| #    |
 	| ## # |
-	| ## # |
+	| ##D# |
     ////////
      */
 
@@ -1113,9 +1251,9 @@ fn main() {
         side_of_the_world: SideOfTheWorld::North,
         has_key: false,
     };
-
-    println!("Двигайтесь! (left, right, forward, back, turn left, turn right, turn around)");
-    //draw_map(&character, &field);
+    print_available_commands();
+    println!();
+    fpv(&character, &field);
     loop {
         println!(
             "Ваши координаты: {}.{}, направление на {:?}",
@@ -1124,59 +1262,76 @@ fn main() {
 
         let mut input = String::new();
         io::stdin().read_line(&mut input).expect("Ошибка ввода!");
-        let command = input.trim().to_lowercase();
+        let command_str = input.trim().to_lowercase();
         let mut made_action = false;
 
-        match command.as_str() {
-            "turn left" => {
+        if command_str == "help" {
+            print_available_commands();
+            continue;
+        }
+
+        let command = match Command::from_str(&command_str) {
+            Some(cmd) => cmd,
+            None => {
+                println!("Неверная команда! Введите 'help' для списка команд.");
+                continue;
+            }
+        };
+
+        match command {
+            Command::TurnLeft => {
                 character.turn_left();
                 made_action = true;
             }
-            "turn right" => {
+            Command::TurnRight => {
                 character.turn_right();
                 made_action = true;
             }
-            "turn around" => {
+            Command::TurnAround => {
                 character.turn_around();
                 made_action = true;
             }
-            "forward" => {
+            Command::Forward => {
                 if character.move_forward(&mut field) {
                     made_action = true;
                 } else {
                     println!("Нельзя пройти!");
                 }
             },
-            "back" => {
+            Command::Back => {
                 if character.move_back(&mut field) {
                     made_action = true;
                 } else {
                     println!("Нельзя пройти!");
                 }
             },
-            "left" => {
+            Command::Left => {
                 if character.move_left(&mut field) {
                     made_action = true;
                 } else {
                     println!("Нельзя пройти!");
                 }
             },
-            "right" => {
+            Command::Right => {
                 if character.move_right(&mut field) {
                     made_action = true;
                 } else {
                     println!("Нельзя пройти!");
                 }
             },
-            _ => println!("Неверная команда!"),
         }
         if made_action {
-            //draw_map(&character, &field);
+            print!("\x1bc");
+            fpv(&character, &field);
+            
+            if character.has_key {
+                println!("У вас есть ключ!");
+            }
         }
     }
 }
 
-fn draw_map(character: &Character, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) {
+/*fn draw_map(character: &Character, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) {
     print!("\x1bc");
 
     for y in 0..FIELD_HEIGHT {
@@ -1206,4 +1361,4 @@ fn draw_map(character: &Character, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) 
     } else {
         println!("Ключ не найден.");
     }
-}
+}*/
