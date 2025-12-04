@@ -1,4 +1,4 @@
-use std::fmt::{self, write};
+use std::fmt::{self};
  #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum SideOfTheWorld {
     South,
@@ -18,10 +18,10 @@ impl fmt::Display for SideOfTheWorld {
     }
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Item {
     Key(u8),
-    Paper,
+    Paper(String),
     Stone,
 }
 
@@ -29,7 +29,7 @@ impl fmt::Display for Item {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Item::Key(number) => write!(f, "Ключ №{}", number),
-            Item::Paper => write!(f, "Лист бумаги"),
+            Item::Paper(..) => write!(f, "Лист бумаги"),
             Item::Stone => write!(f, "Камень"),
         }
     }

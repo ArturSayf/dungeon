@@ -38,7 +38,7 @@ fn victory_screen(){
 fn main() {
     // Инициализация поля
     let mut field: [[Cell; FIELD_WIDTH]; FIELD_HEIGHT] = [
-        [Cell::Pass, Cell::Pass, Cell::Box { items: vec![Item::Stone, Item::Paper, Item::Key(1)]}, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Key { number: 2 }],
+        [Cell::Pass, Cell::Pass, Cell::Box { items: vec![Item::Stone, Item::Paper("Парорль от сейфа: 7148".to_string()), Item::Key(1)]}, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Key { number: 2 }],
         [Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass],
         [Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Wall],
         [Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass],
@@ -179,7 +179,7 @@ fn main() {
                 }
                 match item {
                 Item::Key(number) => print!("Ключ №{}", number),
-                Item::Paper => print!("Бумага"),
+                Item::Paper(..) => print!("Бумага"),
                 Item::Stone => print!("Камень"),
                 }
                 first = false;

@@ -95,7 +95,7 @@ impl Character {
                 self.manage_box(items);
                 true
             },
-            Cell::Safe { state, password, items, direction } if !*state => {
+            Cell::Safe { state, password, direction, .. } if !*state => {
                 let correct_side = match (self.side_of_the_world, direction) {
                     (SideOfTheWorld::North, SideOfTheWorld::North) => true,
                     (SideOfTheWorld::South, SideOfTheWorld::South) => true,
@@ -161,47 +161,109 @@ impl Character {
     }
 
     pub fn manage_inventory(&mut self) {
-        let max_width = 25;
-        let content_width = max_width - 4;
+    loop {
         print!("\x1bc");
-        
         println!("⁠┌──────⁠┤ИНВЕНТАРЬ├──────⁠┐");
-    
+
         if self.inventory.is_empty() {
             println!(" │    Инвентарь пуст     │");
             println!("⁠└⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─┘");
         } else {
             println!(" │ Предметы в инвентаре: │");
             for (i, item) in self.inventory.iter().enumerate() {
-                let item_text = format!("{} - {}", i + 1, item);
-                let item_len = item_text.chars().count();
-                
-                if item_len <= content_width {
-                    let padding = content_width - item_len;
-                    println!(" │ {}{} │", item_text, " ".repeat(padding));
-                } else {
-                    let truncated: String = item_text.chars().take(content_width - 3).collect();
-                    println!(" │ {}... │", truncated);
+                match item {
+                    Item::Key(number) => println!(" │ {} - Ключ №{:<11} │", i + 1, number),
+                    Item::Paper(_) => println!(" │ {} - Бумага{:11} │", i + 1, ""),
+                    Item::Stone => println!(" │ {} - Камень{:11} │", i + 1, ""),
                 }
             }
-            
             println!("⁠└⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─┘");
         }
-    
-        println!("Нажмите любую клавишу чтобы продолжить...");
+
+        println!();
+        println!(" КОМАНДЫ:");
+        println!(" r - прочитать бумагу (если есть)");
+        println!(" x - закрыть инвентарь");
+        println!();
+        print!(" > ");
+
         let mut input = String::new();
         io::stdin().read_line(&mut input).expect("Ошибка ввода!");
+        let command = input.trim().to_lowercase();
+        
+        match command.as_str() {
+            "x" => break,
+            "r" => {
+                self.read_papers();
+            },
+            _ => {
+                if !command.is_empty() {
+                    println!("Неизвестная команда! Используйте 'r' или 'x'");
+                    println!("Нажмите Enter чтобы продолжить...");
+                    let _ = io::stdin().read_line(&mut String::new());
+                }
+            }
+        }
     }
+}
+
+pub fn read_papers(&self) {
+    // Собираем все тексты из бумаг
+    let papers: Vec<&String> = self.inventory.iter()
+        .filter_map(|item| {
+            if let Item::Paper(text) = item {
+                Some(text)
+            } else {
+                None
+            }
+        })
+        .collect();
+    
+    if papers.is_empty() {
+        // Если бумаг нет, ничего не происходит (по условию)
+        return;
+    }
+    
+    // Переходим в режим чтения
+    loop {
+        print!("\x1bc");
+        println!("┌─────────────────────────────────────────┐");
+        println!("│            СОДЕРЖАНИЕ БУМАГ             │");
+        println!("├─────────────────────────────────────────┤");
+        
+        for (i, text) in papers.iter().enumerate() {
+            println!("│ Записка {}:                              │", i + 1);
+            println!("│ {} │", format!("{:39}", text));
+            
+            if i < papers.len() - 1 {
+                println!("│───────────────────────────────────────│");
+            }
+        }
+        
+        println!("├─────────────────────────────────────────┤");
+        println!("│ r - вернуться в инвентарь               │");
+        println!("└─────────────────────────────────────────┘");
+        println!();
+        
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).expect("Ошибка ввода!");
+        let command = input.trim().to_lowercase();
+        
+        if command == "r" {
+            break; // Возвращаемся в инвентарь
+        }
+    }
+}
     
 
     pub fn add_to_inventory(&mut self, item: Item) {
-        if self.inventory.len() < 3 {
-            self.inventory.push(item);
-            println!("Подобран предмет: {}", item);
-        } else {
-            println!("В инвентаре нет места.");
-        }
+    if self.inventory.len() < 3 {
+        self.inventory.push(item.clone());
+        println!("Подобран предмет: {}", item);
+    } else {
+        println!("В инвентаре нет места.");
     }
+}
 
     pub fn manage_box(&mut self, box_items: &mut Vec<Item>) {
         loop {  
@@ -243,7 +305,7 @@ impl Character {
             let left_item = if i < self.inventory.len() {
                 match &self.inventory[i] {
                     Item::Key(num) => format!("{} - Ключ №{}", i + 1, num),
-                    Item::Paper => format!("{} - Бумага", i + 1),
+                    Item::Paper(..) => format!("{} - Бумага", i + 1),
                     Item::Stone => format!("{} - Камень", i + 1),
                 }
             } else {
@@ -253,7 +315,7 @@ impl Character {
             let right_item = if i < box_items.len() {
                 match &box_items[i] {
                     Item::Key(num) => format!("{} - Ключ №{}", i + 1, num),
-                    Item::Paper => format!("{} - Бумага", i + 1),
+                    Item::Paper(..) => format!("{} - Бумага", i + 1),
                     Item::Stone => format!("{} - Камень", i + 1),
                 }
             } else {
@@ -283,7 +345,7 @@ impl Character {
         io::stdin().read_line(&mut input).expect("Ошибка ввода!");
         let command = input.trim().to_lowercase();
         
-        let mut message = String::new();
+        let message;
         
         match command.as_str() {
             "x" => {
@@ -298,7 +360,7 @@ impl Character {
                         let item = box_items.remove(index);
                         let item_name = match &item {
                             Item::Key(num) => format!("Ключ №{}", num),
-                            Item::Paper => "Бумага".to_string(),
+                            Item::Paper(..) => "Бумага".to_string(),
                             Item::Stone => "Камень".to_string(),
                         };
                         self.inventory.push(item);
@@ -316,7 +378,7 @@ impl Character {
                         let item = self.inventory.remove(0);
                         let item_name = match &item {
                             Item::Key(num) => format!("Ключ №{}", num),
-                            Item::Paper => "Бумага".to_string(),
+                            Item::Paper(..) => "Бумага".to_string(),
                             Item::Stone => "Камень".to_string(),
                         };
                         box_items.push(item);
@@ -334,7 +396,7 @@ impl Character {
                         let item = self.inventory.remove(1);
                         let item_name = match &item {
                             Item::Key(num) => format!("Ключ №{}", num),
-                            Item::Paper => "Бумага".to_string(),
+                            Item::Paper(..) => "Бумага".to_string(),
                             Item::Stone => "Камень".to_string(),
                         };
                         box_items.push(item);
@@ -352,7 +414,7 @@ impl Character {
                         let item = self.inventory.remove(2);
                         let item_name = match &item {
                             Item::Key(num) => format!("Ключ №{}", num),
-                            Item::Paper => "Бумага".to_string(),
+                            Item::Paper(..) => "Бумага".to_string(),
                             Item::Stone => "Камень".to_string(),
                         };
                         box_items.push(item);
@@ -374,20 +436,6 @@ impl Character {
             println!("Нажмите Enter чтобы продолжить...");
             let _ = io::stdin().read_line(&mut String::new());
         }
-        }
-    }
-
-
-    pub fn from_inventary_to_box(&mut self, index: usize, box_items: &mut Vec<Item>) {
-        if index < self.inventory.len() {
-            if box_items.len() < 3 {
-                let item = self.inventory.remove(index);
-                box_items.push(item);
-            } else {
-                println!("Инвентарь заполнен!");
-            }
-        } else {
-            println!("Неверный номер предмета в ящике!");
         }
     }
 
