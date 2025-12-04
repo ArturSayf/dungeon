@@ -1,4 +1,4 @@
-use std::fmt;
+use std::fmt::{self};
 
 pub enum Command {
     Forward,
@@ -9,6 +9,8 @@ pub enum Command {
     TurnRight,
     TurnAround,
     Map,
+    Action,
+    Inventory,
 }
 
 impl fmt::Display for Command {
@@ -22,6 +24,8 @@ impl fmt::Display for Command {
             Command::TurnRight => write!(f, "e"),
             Command::TurnAround => write!(f, "z"),
             Command::Map => write!(f, "m"),
+            Command::Action => write!(f, "f"),
+            Command::Inventory => write!(f, "i"),
         }
     }
 }
@@ -37,6 +41,8 @@ impl Command {
             "turn right" | "e" => Some(Command::TurnRight),
             "turn around" | "z" => Some(Command::TurnAround),
             "Get Map" | "m" => Some(Command::Map),
+            "Action" | "f" => Some(Command::Action),
+            "Inventory" | "i" => Some(Command::Inventory),
             _ => None,
         }
     }

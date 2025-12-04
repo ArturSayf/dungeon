@@ -1,6 +1,6 @@
 use crate::game::character::Character;
 use crate::game::field::{Cell, FIELD_WIDTH, FIELD_HEIGHT};
-use crate::game::images::{WALLS, DOORS};
+use crate::game::images::{CLOSEDOORS, OPENDOORS, TOGGLEOFF, TOGGLEON, WALLS, CLOSE_LIFTING_GATES, OPEN_LIFTING_GATES, KEYS, BOX, CLOSE_SAFE, OPEN_SAFE};
 use crate::game::field::SideOfTheWorld;
 
 pub fn fpv(character: &Character, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) {
@@ -28,14 +28,46 @@ pub fn fpv(character: &Character, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) {
         if nx >= 0 && nx < FIELD_WIDTH as isize && ny >= 0 && ny < FIELD_HEIGHT as isize {
             match field[ny as usize][nx as usize] {
                 Cell::Wall => draw(&mut view, WALLS[index]),
-                Cell::Door { direction: door_direction } => {
-                    let door_index = (door_direction as isize - character.side_of_the_world as isize).rem_euclid(4) as usize;
-                    draw(&mut view, DOORS[index][door_index]);
+                Cell::Door { direction: door_direction, state, .. } => {
+                    if state {
+                        let door_index = (door_direction as isize - character.side_of_the_world as isize).rem_euclid(4) as usize;
+                        draw(&mut view, OPENDOORS[index][door_index]);
+                    } else {
+                        let door_index = (door_direction as isize - character.side_of_the_world as isize).rem_euclid(4) as usize;
+                        draw(&mut view, CLOSEDOORS[index][door_index]);
+                    }
                 }
-                Cell::Key => {
-                    continue;
-                }
+                Cell::Key { .. } => draw(&mut view, KEYS[index]),
                 Cell::Pass => continue,
+                Cell::Toggle { state, direction: toggle_direction, .. } => {
+                    if state{
+                        let toggle_index = (toggle_direction as isize - character.side_of_the_world as isize).rem_euclid(4) as usize;
+                        draw(&mut view, TOGGLEON[index][toggle_index]);
+                    } else {
+                        let toggle_index = (toggle_direction as isize - character.side_of_the_world as isize).rem_euclid(4) as usize;
+                        draw(&mut view, TOGGLEOFF[index][toggle_index]);
+                    }    
+                },
+                Cell::LiftingGates { state, direction, .. } => {
+                    if state{
+                        let gates_index = (direction as isize - character.side_of_the_world as isize).rem_euclid(4) as usize;
+                    draw(&mut view, OPEN_LIFTING_GATES[index][gates_index]);
+                    } else {
+                        let gates_index = (direction as isize - character.side_of_the_world as isize).rem_euclid(4) as usize;
+                    draw(&mut view, CLOSE_LIFTING_GATES[index][gates_index]);
+                    }
+                },
+                Cell::Box { .. } => draw(&mut view, BOX[index]),
+                Cell::Safe { state, direction, .. } => {
+                    if state {
+                        let safe_index = (direction as isize - character.side_of_the_world as isize).rem_euclid(4) as usize;
+                        draw(&mut view, OPEN_SAFE[index][safe_index]);
+                    } else {
+                        let safe_index = (direction as isize - character.side_of_the_world as isize).rem_euclid(4) as usize;
+                        draw(&mut view, CLOSE_SAFE[index][safe_index]);
+                    }
+                },
+                Cell::Exit => continue,
             }
         } else {
             draw(&mut view, WALLS[index]);

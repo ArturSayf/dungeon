@@ -1,5 +1,4 @@
-use std::fmt;
-
+use std::fmt::{self, write};
  #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum SideOfTheWorld {
     South,
@@ -19,11 +18,33 @@ impl fmt::Display for SideOfTheWorld {
     }
 }
 
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub enum Item {
+    Key(u8),
+    Paper,
+    Stone,
+}
+
+impl fmt::Display for Item {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Item::Key(number) => write!(f, "Ключ №{}", number),
+            Item::Paper => write!(f, "Лист бумаги"),
+            Item::Stone => write!(f, "Камень"),
+        }
+    }
+}
+
 pub enum Cell {
     Wall,
     Pass,
-    Door { direction: SideOfTheWorld },
-    Key,
+    Door { direction: SideOfTheWorld, number: u8, state: bool },
+    Key { number: u8 },
+    Toggle { state: bool, number: u8, direction: SideOfTheWorld },
+    LiftingGates { state: bool, number: u8, direction: SideOfTheWorld },
+    Box {items: Vec<Item>},
+    Safe {state: bool, direction: SideOfTheWorld, password: u16, items: Vec<Item> },
+    Exit,
 }
 
 impl fmt::Display for Cell {
@@ -31,14 +52,19 @@ impl fmt::Display for Cell {
         match self {
             Cell::Wall => write!(f, "Стена"),
             Cell::Pass => write!(f, "Проход"),
-            Cell::Door { .. } => write!(f, "Дверь"),
-            Cell::Key => write!(f, "Ключ"),
+            Cell::Door { number, .. } => write!(f, "Дверь №{}", number),
+            Cell::Key { number } => write!(f, "Ключ №{}", number),
+            Cell::Toggle { state, .. } => write!(f, "Рубильник {}", state),
+            Cell::LiftingGates { state, number, .. } => write!(f, "Ворота №{} {}", number, if *state { "открыты" } else { "закрыты" }),
+            Cell::Box { .. } => write!(f, "Ящик"),
+            Cell::Safe { .. } => write!(f, "Сейф"),
+            Cell::Exit => write!(f, "Выход")
         }
     }
 }
 
-pub const FIELD_HEIGHT: usize = 7;
-pub const FIELD_WIDTH: usize = 9;
+pub const FIELD_HEIGHT: usize = 9;
+pub const FIELD_WIDTH: usize = 10;
 
 pub struct MapVisibility {
     pub discovered: [[bool; FIELD_WIDTH]; FIELD_HEIGHT],
