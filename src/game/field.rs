@@ -22,15 +22,13 @@ impl fmt::Display for SideOfTheWorld {
 pub enum Item {
     Key(u8),
     Paper(String),
-    Stone,
 }
 
 impl fmt::Display for Item {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Item::Key(number) => write!(f, "Ключ №{}", number),
-            Item::Paper(..) => write!(f, "Лист бумаги"),
-            Item::Stone => write!(f, "Камень"),
+            Item::Paper(..) => write!(f, "Записка"),
         }
     }
 }
@@ -63,8 +61,8 @@ impl fmt::Display for Cell {
     }
 }
 
-pub const FIELD_HEIGHT: usize = 9;
-pub const FIELD_WIDTH: usize = 10;
+pub const FIELD_HEIGHT: usize = 10;
+pub const FIELD_WIDTH: usize = 20;
 
 pub struct MapVisibility {
     pub discovered: [[bool; FIELD_WIDTH]; FIELD_HEIGHT],
