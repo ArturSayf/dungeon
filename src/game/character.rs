@@ -167,6 +167,22 @@ impl Character {
                 self.manage_box(items);
                 true
             },
+
+            Cell::Exit { state, direction } => {
+                let correct_side = match (self.side_of_the_world, direction) {
+                    (SideOfTheWorld::North, SideOfTheWorld::North) => true,
+                    (SideOfTheWorld::South, SideOfTheWorld::South) => true,
+                    (SideOfTheWorld::East, SideOfTheWorld::East) => true,
+                    (SideOfTheWorld::West, SideOfTheWorld::West) => true,
+                    _ => false,
+                };
+
+                if !correct_side {
+                    return false;
+                }
+                *state = !*state;
+                true
+            } ,
             _ => false,
         }
     }
@@ -603,10 +619,15 @@ long_word_line.push(ch);
             },
             Cell::Box { .. } => false,
             Cell::Safe { .. } => false,
-            Cell::Exit => {
-                self.x = nx;
-                self.y = ny;
-                true
+            Cell::Exit { state, .. } => {
+                if *state {
+                    self.x = nx;
+                    self.y = ny;
+                    true
+                } else {
+                    println!("Лифт закрыт! Нажмите кнопку вызова лифта.");
+                    false
+                }
             },
         }
     } else {

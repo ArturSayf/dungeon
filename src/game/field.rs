@@ -42,7 +42,7 @@ pub enum Cell {
     LiftingGates { state: bool, number: u8, direction: SideOfTheWorld },
     Box {items: Vec<Item>},
     Safe {state: bool, direction: SideOfTheWorld, password: u16, items: Vec<Item> },
-    Exit,
+    Exit {state: bool, direction: SideOfTheWorld },
 }
 
 impl fmt::Display for Cell {
@@ -56,7 +56,7 @@ impl fmt::Display for Cell {
             Cell::LiftingGates { state, number, .. } => write!(f, "Ворота №{} {}", number, if *state { "открыты" } else { "закрыты" }),
             Cell::Box { .. } => write!(f, "Ящик"),
             Cell::Safe { .. } => write!(f, "Сейф"),
-            Cell::Exit => write!(f, "Выход")
+            Cell::Exit { .. } => write!(f, "Выход")
         }
     }
 }

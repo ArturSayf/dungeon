@@ -92,7 +92,7 @@ pub fn draw_map(
                         },
                         Cell:: Box { .. } => print!("❒"),
                         Cell::Safe { .. } => print!("S"),
-                        Cell::Exit => print!("E"),
+                        Cell::Exit { .. } => print!("E"),
                     }
                 }
             } else {
