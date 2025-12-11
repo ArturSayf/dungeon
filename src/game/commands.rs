@@ -11,6 +11,9 @@ pub enum Command {
     Map,
     Action,
     Inventory,
+    Attack,
+    Loot,
+    UseMedkit,
 }
 
 impl fmt::Display for Command {
@@ -26,6 +29,9 @@ impl fmt::Display for Command {
             Command::Map => write!(f, "m"),
             Command::Action => write!(f, "f"),
             Command::Inventory => write!(f, "i"),
+            Command::Attack => write!(f, "j"),
+            Command::Loot => write!(f, "g"),
+            Command::UseMedkit => write!(f, "k"),
         }
     }
 }
@@ -43,6 +49,9 @@ impl Command {
             "Get Map" | "m" => Some(Command::Map),
             "Action" | "f" => Some(Command::Action),
             "Inventory" | "i" => Some(Command::Inventory),
+            "Attack" | "j" => Some(Command::Attack),
+            "Loot" | "g" => Some(Command::Loot),
+            "UseMedkit" | "k" => Some(Command::UseMedkit),
             _ => None,
         }
     }

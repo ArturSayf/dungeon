@@ -22,6 +22,7 @@ impl fmt::Display for SideOfTheWorld {
 pub enum Item {
     Key(u8),
     Paper(String),
+    Medkit(u8),
 }
 
 impl fmt::Display for Item {
@@ -29,6 +30,7 @@ impl fmt::Display for Item {
         match self {
             Item::Key(number) => write!(f, "Ключ №{}", number),
             Item::Paper(..) => write!(f, "Записка"),
+            Item::Medkit(amount) => write!(f, "Аптечка (+{} HP)", amount),
         }
     }
 }
@@ -38,6 +40,8 @@ pub enum Cell {
     Pass,
     Door { direction: SideOfTheWorld, number: u8, state: bool },
     Key { number: u8 },
+    Paper { text: String },
+    Medkit { amount: u8},
     Toggle { state: bool, number: u8, direction: SideOfTheWorld },
     LiftingGates { state: bool, number: u8, direction: SideOfTheWorld },
     Box {items: Vec<Item>},
@@ -52,11 +56,13 @@ impl fmt::Display for Cell {
             Cell::Pass => write!(f, "Проход"),
             Cell::Door { number, .. } => write!(f, "Дверь №{}", number),
             Cell::Key { number } => write!(f, "Ключ №{}", number),
+            Cell::Paper { .. } => write!(f, "Записка"),
+            Cell::Medkit { .. } => write!(f, "Аптечка"),
             Cell::Toggle { state, .. } => write!(f, "Рубильник {}", state),
             Cell::LiftingGates { state, number, .. } => write!(f, "Ворота №{} {}", number, if *state { "открыты" } else { "закрыты" }),
             Cell::Box { .. } => write!(f, "Ящик"),
             Cell::Safe { .. } => write!(f, "Сейф"),
-            Cell::Exit { .. } => write!(f, "Выход")
+            Cell::Exit { .. } => write!(f, "Выход"),
         }
     }
 }

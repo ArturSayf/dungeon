@@ -188,185 +188,176 @@ impl Character {
     }
 
     pub fn manage_inventory(&mut self) {
-    loop {
-        print!("\x1bc");
-        println!("⁠┌──────⁠┤ИНВЕНТАРЬ├──────⁠┐");
+        loop {
+            print!("\x1bc");
+            println!("⁠┌──────⁠┤ИНВЕНТАРЬ├──────⁠┐");
 
-        if self.inventory.is_empty() {
-            println!(" │    Инвентарь пуст     │");
-            println!("⁠└⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─┘");
-        } else {
-            println!(" │ Предметы в инвентаре: │");
-            for (i, item) in self.inventory.iter().enumerate() {
-                match item {
-                    Item::Key(number) => println!(" │ {} - Ключ №{:<11} │", i + 1, number),
-                    Item::Paper(_) => println!(" │ {} - Бумага{:11} │", i + 1, ""),
-                }
-            }
-            println!("⁠└⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─┘");
-        }
-
-        println!();
-        println!(" КОМАНДЫ:");
-        println!(" r - прочитать бумагу (если есть)");
-        println!(" x - закрыть инвентарь");
-        println!();
-
-        let mut input = String::new();
-        io::stdin().read_line(&mut input).expect("Ошибка ввода!");
-        let command = input.trim().to_lowercase();
-        
-        match command.as_str() {
-            "x" => break,
-            "r" => {
-                self.read_papers();
-            },
-            _ => {
-                if !command.is_empty() {
-                    println!("Неизвестная команда! Используйте 'r' или 'x'");
-                    println!("Нажмите Enter чтобы продолжить...");
-                    let _ = io::stdin().read_line(&mut String::new());
-                }
-            }
-        }
-    }
-}
-
-    pub fn read_papers(&self) {
-    // Собираем все тексты из бумаг
-    let papers: Vec<&String> = self.inventory.iter()
-        .filter_map(|item| {
-            if let Item::Paper(text) = item {
-                Some(text)
+            if self.inventory.is_empty() {
+                println!(" │    Инвентарь пуст     │");
+                println!("⁠└⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─┘");
             } else {
-                None
-            }
-        })
-        .collect();
-    
-    if papers.is_empty() {
-        return;
-    }
-    
-    // Переходим в режим чтения
-    loop {
-        print!("\x1bc");
-        println!("┌─────────────────────────────────────────┐");
-        println!("│            СОДЕРЖАНИЕ БУМАГ             │");
-        println!("├─────────────────────────────────────────┤");
-        
-        // Максимальная ширина текста внутри рамки (38 символов)
-        const MAX_LINE_WIDTH: usize = 68;
-        
-        for (i, text) in papers.iter().enumerate() {
-            println!("│ Записка {}:                              │", i + 1);
-            
-            // Разбиваем текст на строки без разрыва слов
-            let lines = wrap_text_without_word_break(text, MAX_LINE_WIDTH);
-            
-            // Выводим каждую строку
-            for line in &lines {
-                println!("│ {:<39} │", line);
-            }
-            
-            // Если текст пустой, выводим соответствующее сообщение
-            if lines.is_empty() {
-                println!("│ (пусто)                                 │");
-            }
-            
-            // Добавляем разделитель между записками, если это не последняя
-            if i < papers.len() - 1 {
-                println!("│                                         │");
-            }
-        }
-        
-        println!("├─────────────────────────────────────────┤");
-        println!("│ r - вернуться в инвентарь               │");
-        println!("└─────────────────────────────────────────┘");
-        println!();
-        print!(" > ");
-        
-        let mut input = String::new();
-        io::stdin().read_line(&mut input).expect("Ошибка ввода!");
-        let command = input.trim().to_lowercase();
-        
-        if command == "r" {
-            break;
-        }
-    }
-    fn wrap_text_without_word_break(text: &str, max_width: usize) -> Vec<String> {
-    let mut result = Vec::new();
-    
-    // Разбиваем текст на слова
-    let words: Vec<&str> = text.split_whitespace().collect();
-    
-    let mut current_line = String::new();
-    
-    for word in words {
-        // Проверяем, поместится ли слово на текущую строку
-        let potential_length = if current_line.is_empty() {
-            word.len()
-        } else {
-            current_line.len() + 1 + word.len()  // +1 для пробела
-        };
-        
-        if potential_length <= max_width {
-            // Слово помещается - добавляем его к текущей строке
-            if !current_line.is_empty() {
-                current_line.push(' ');
-            }
-            current_line.push_str(word);
-        } else {
-            // Слово не помещается - сохраняем текущую строку и начинаем новую
-            if !current_line.is_empty() {
-                result.push(current_line.clone());
-                current_line.clear();
-            }
-            
-            // Если слово само по себе длиннее максимальной ширины,
-            // мы всё равно должны его добавить (это крайний случай)
-            if word.len() > max_width {
-                // В крайнем случае разбиваем длинное слово по символам
-                let mut chars = word.chars();
-                let mut long_word_line = String::new();
-                
-                while let Some(ch) = chars.next() {
-                    if long_word_line.len() < max_width {
-                        long_word_line.push(ch);
-                    } else {
-                        result.push(long_word_line.clone());
-                        long_word_line.clear();
-long_word_line.push(ch);
+                println!(" │ Предметы в инвентаре: │");
+                for (i, item) in self.inventory.iter().enumerate() {
+                    match item {
+                        Item::Key(number) => println!(" │ {} - Ключ №{:<11} │", i + 1, number),
+                        Item::Paper(_) => println!(" │ {} - Бумага{:11} │", i + 1, ""),
+                        Item::Medkit(_) => println!(" | {} - Аптечка{:10} |", i +1, ""),
                     }
                 }
-                
-                if !long_word_line.is_empty() {
-                    current_line = long_word_line;
+                println!("⁠└⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─┘");
+            }
+
+            println!();
+            println!(" КОМАНДЫ:");
+            println!(" r - прочитать бумагу (если есть)");
+            println!(" x - закрыть инвентарь");
+            println!();
+
+            let mut input = String::new();
+            io::stdin().read_line(&mut input).expect("Ошибка ввода!");
+            let command = input.trim().to_lowercase();
+
+            match command.as_str() {
+                "x" => break,
+                "r" => {
+                    self.read_papers();
+                },
+                _ => {
+                    if !command.is_empty() {
+                        println!("Неизвестная команда! Используйте 'r' или 'x'");
+                        println!("Нажмите Enter чтобы продолжить...");
+                        let _ = io::stdin().read_line(&mut String::new());
+                    }
                 }
-            } else {
-                // Обычное слово - начинаем с него новую строку
-                current_line.push_str(word);
             }
         }
     }
-    
-    // Добавляем последнюю строку, если она не пустая
-    if !current_line.is_empty() {
-        result.push(current_line);
+
+    pub fn read_papers(&self) {
+        // все тексты из бумаг
+        let papers: Vec<&String> = self.inventory.iter()
+            .filter_map(|item| {
+                if let Item::Paper(text) = item {
+                    Some(text)
+                } else {
+                    None
+                }
+            })
+            .collect();
+        
+        if papers.is_empty() {
+            return;
+        }
+
+        loop {
+            print!("\x1bc");
+            println!("┌─────────────────────────────────────────┐");
+            println!("│            СОДЕРЖАНИЕ БУМАГ             │");
+            println!("├─────────────────────────────────────────┤");
+
+            // Максимальная ширина текста внутри рамки
+            const MAX_LINE_WIDTH: usize = 68;
+
+            for (i, text) in papers.iter().enumerate() {
+                println!("│ Записка {}:                              │", i + 1);
+
+                // Разбиваем текст на строки без разрыва слов
+                let lines = wrap_text_without_word_break(text, MAX_LINE_WIDTH);
+
+                // Вывод строк
+                for line in &lines {
+                    println!("│ {:<39} │", line);
+                }
+
+                // пустой текст
+                if lines.is_empty() {
+                    println!("│ (пусто)                                 │");
+                }
+
+                // разделитель между разными записками
+                if i < papers.len() - 1 {
+                    println!("│                                         │");
+                }
+            }
+
+            println!("├─────────────────────────────────────────┤");
+            println!("│ r - вернуться в инвентарь               │");
+            println!("└─────────────────────────────────────────┘");
+            println!();
+            print!(" > ");
+
+            let mut input = String::new();
+            io::stdin().read_line(&mut input).expect("Ошибка ввода!");
+            let command = input.trim().to_lowercase();
+
+            if command == "r" {
+                break;
+            }
+        }
+            fn wrap_text_without_word_break(text: &str, max_width: usize) -> Vec<String> {
+            let mut result = Vec::new();
+            
+            let words: Vec<&str> = text.split_whitespace().collect();
+            
+            let mut current_line = String::new();
+            
+            for word in words {
+
+                let potential_length = if current_line.is_empty() {
+                    word.len()
+                } else {
+                    current_line.len() + 1 + word.len() 
+                };
+
+                if potential_length <= max_width {
+                    if !current_line.is_empty() {
+                        current_line.push(' ');
+                    }
+                    current_line.push_str(word);
+                } else {
+                    if !current_line.is_empty() {
+                        result.push(current_line.clone());
+                        current_line.clear();
+                    }
+                    if word.len() > max_width {
+                        let mut chars = word.chars();
+                        let mut long_word_line = String::new();
+
+                        while let Some(ch) = chars.next() {
+                            if long_word_line.len() < max_width {
+                                long_word_line.push(ch);
+                            } else {
+                                result.push(long_word_line.clone());
+                                long_word_line.clear();
+                                long_word_line.push(ch);
+                            }
+                        }
+
+                        if !long_word_line.is_empty() {
+                            current_line = long_word_line;
+                        }
+                    } else {
+                        current_line.push_str(word);
+                    }
+                }
+            }
+
+            if !current_line.is_empty() {
+                result.push(current_line);
+            }
+
+            result
+        }   
     }
-    
-    result
-}
-}
 
     pub fn add_to_inventory(&mut self, item: Item) {
-    if self.inventory.len() < 5 {
-        self.inventory.push(item.clone());
-        println!("Подобран предмет: {}", item);
-    } else {
-        println!("В инвентаре нет места.");
+        if self.inventory.len() < 5 {
+            self.inventory.push(item.clone());
+            println!("Подобран предмет: {}", item);
+        } else {
+            println!("В инвентаре нет места.");
+        }
     }
-}
 
     pub fn manage_box(&mut self, box_items: &mut Vec<Item>) {
         loop {  
@@ -409,6 +400,7 @@ long_word_line.push(ch);
                 match &self.inventory[i] {
                     Item::Key(num) => format!("{} - Ключ №{}", i + 1, num),
                     Item::Paper(..) => format!("{} - Бумага", i + 1),
+                    Item::Medkit(..) => format!("{} - Аптечка", i + 1),
                 }
             } else {
                 "".to_string()
@@ -418,6 +410,7 @@ long_word_line.push(ch);
                 match &box_items[i] {
                     Item::Key(num) => format!("{} - Ключ №{}", i + 1, num),
                     Item::Paper(..) => format!("{} - Бумага", i + 1),
+                    Item::Medkit(..) => format!("{} - Аптечка", i + 1),
                 }
             } else {
                 "".to_string()
@@ -462,6 +455,7 @@ long_word_line.push(ch);
                         let item_name = match &item {
                             Item::Key(num) => format!("Ключ №{}", num),
                             Item::Paper(..) => "Бумага".to_string(),
+                            Item::Medkit(..) => "Аптечка".to_string(),
                         };
                         self.inventory.push(item);
                         message = format!("Предмет '{}' будет перемещен в инвентарь.", item_name);
@@ -479,6 +473,7 @@ long_word_line.push(ch);
                         let item_name = match &item {
                             Item::Key(num) => format!("Ключ №{}", num),
                             Item::Paper(..) => "Бумага".to_string(),
+                            Item::Medkit(..) => "Аптечка".to_string(),
                         };
                         box_items.push(item);
                         message = format!("Предмет '{}' будет перемещен в контейнер.", item_name);
@@ -496,6 +491,7 @@ long_word_line.push(ch);
                         let item_name = match &item {
                             Item::Key(num) => format!("Ключ №{}", num),
                             Item::Paper(..) => "Бумага".to_string(),
+                            Item::Medkit(..) => "Аптечка".to_string(),
                         };
                         box_items.push(item);
                         message = format!("Предмет '{}' будет перемещен в контейнер.", item_name);
@@ -513,6 +509,7 @@ long_word_line.push(ch);
                         let item_name = match &item {
                             Item::Key(num) => format!("Ключ №{}", num),
                             Item::Paper(..) => "Бумага".to_string(),
+                            Item::Medkit(..) => "Аптечка".to_string(),
                         };
                         box_items.push(item);
                         message = format!("Предмет '{}' будет перемещен в контейнер.", item_name);
@@ -530,6 +527,7 @@ long_word_line.push(ch);
                         let item_name = match &item {
                             Item::Key(num) => format!("Ключ №{}", num),
                             Item::Paper(..) => "Бумага".to_string(),
+                            Item::Medkit(..) => "Аптечка".to_string(),
                         };
                         box_items.push(item);
                         message = format!("Предмет '{}' будет перемещен в контейнер.", item_name);
@@ -547,6 +545,7 @@ long_word_line.push(ch);
                         let item_name = match &item {
                             Item::Key(num) => format!("Ключ №{}", num),
                             Item::Paper(..) => "Бумага".to_string(),
+                            Item::Medkit(..) => "Аптечка".to_string(),
                         };
                         box_items.push(item);
                         message = format!("Предмет '{}' будет перемещен в контейнер.", item_name);
@@ -572,69 +571,82 @@ long_word_line.push(ch);
 
     pub fn valid_move(&mut self, dx: isize, dy: isize, field: &mut[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool{
 
-    let nx = match self.x.checked_add_signed(dx) {
-      Some(v) => v,
-      None => return false,  
-    };
-    let ny = match self.y.checked_add_signed(dy) {
-      Some(v) => v,
-      None => return false,  
-    };
+        let nx = match self.x.checked_add_signed(dx) {
+          Some(v) => v,
+          None => return false,  
+        };
+        let ny = match self.y.checked_add_signed(dy) {
+          Some(v) => v,
+          None => return false,  
+        };
 
-    if nx < FIELD_WIDTH && ny < FIELD_HEIGHT{
-        match &field[ny][nx] {
-            Cell::Wall => false,
-            Cell::Pass => {
-                self.x = nx;
-                self.y = ny;
-                true
-            },
-            Cell::Door { state, number, .. } => {
-            if *state {
-                self.x = nx;
-                self.y = ny;
-                true
-            } else {
-                println!("Дверь закрыта! Нужен ключ № {}.", number);
-                false
-            }
-        },
-            Cell::Key {number} => {
-                self.x = nx;
-                self.y = ny;
-                self.add_key(*number);
-                field[ny][nx] = Cell::Pass;
-                true
-            }
-            Cell::Toggle { .. } => false,
-            Cell::LiftingGates { state, number, .. } => {
-                if *state {
+        if nx < FIELD_WIDTH && ny < FIELD_HEIGHT{
+            match &field[ny][nx] {
+                Cell::Wall => false,
+                Cell::Pass => {
                     self.x = nx;
                     self.y = ny;
                     true
-                } else {
-                    println!("Дверь закрыта! Найдите переключатель №{}", number);
-                    false
-                }
-            },
-            Cell::Box { .. } => false,
-            Cell::Safe { .. } => false,
-            Cell::Exit { state, .. } => {
-                if *state {
+                },
+                Cell::Door { state, number, .. } => {
+                    if *state {
+                        self.x = nx;
+                        self.y = ny;
+                        true
+                    } else {
+                        println!("Дверь закрыта! Нужен ключ № {}.", number);
+                        false
+                    }
+                },
+                Cell::Key {number} => {
                     self.x = nx;
                     self.y = ny;
+                    self.add_key(*number);
+                    field[ny][nx] = Cell::Pass;
                     true
-                } else {
-                    println!("Лифт закрыт! Нажмите кнопку вызова лифта.");
-                    false
-                }
-            },
+                },
+                Cell::Paper { .. } => {
+                    self.x = nx;
+                    self.y = ny;
+                    //self.add_key(*number);
+                    field[ny][nx] = Cell::Pass;
+                    true
+                },
+                Cell::Medkit { .. } => {
+                    self.x = nx;
+                    self.y = ny;
+                    //self.add_key(*number);
+                    field[ny][nx] = Cell::Pass;
+                    true
+                },
+                Cell::Toggle { .. } => false,
+                Cell::LiftingGates { state, number, .. } => {
+                    if *state {
+                        self.x = nx;
+                        self.y = ny;
+                        true
+                    } else {
+                        println!("Дверь закрыта! Найдите переключатель №{}", number);
+                        false
+                    }
+                },
+                Cell::Box { .. } => false,
+                Cell::Safe { .. } => false,
+                Cell::Exit { state, .. } => {
+                    if *state {
+                        self.x = nx;
+                        self.y = ny;
+                        true
+                    } else {
+                        println!("Лифт закрыт! Нажмите кнопку вызова лифта.");
+                        false
+                    }
+                },
+            }
+        } else {
+            false
         }
-    } else {
-        false
     }
-
-}
 
     pub fn move_forward(&mut self, field: &mut [[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool {
         match self.side_of_the_world {

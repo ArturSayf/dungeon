@@ -1,6 +1,6 @@
 use crate::game::character::Character;
 use crate::game::field::{Cell, FIELD_WIDTH, FIELD_HEIGHT};
-use crate::game::images::{CLOSE_DOORS, OPEN_DOORS, TOGGLE_OFF, TOGGLE_ON, WALLS, CLOSE_LIFTING_GATES, OPEN_LIFTING_GATES, KEYS, BOX, CLOSE_SAFE, OPEN_SAFE, OPEN_EXIT, CLOSE_EXIT};
+use crate::game::images::{CLOSE_DOORS, OPEN_DOORS, TOGGLE_OFF, TOGGLE_ON, WALLS, CLOSE_LIFTING_GATES, OPEN_LIFTING_GATES, KEYS, PAPER, MEDKIT, BOX, CLOSE_SAFE, OPEN_SAFE, OPEN_EXIT, CLOSE_EXIT};
 use crate::game::field::SideOfTheWorld;
 
 pub fn fpv(character: &Character, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) {
@@ -38,6 +38,8 @@ pub fn fpv(character: &Character, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) {
                     }
                 },
                 Cell::Key { .. } => draw(&mut view, KEYS[index]),
+                Cell::Paper { .. } => draw(&mut view, PAPER[index]),
+                Cell::Medkit { .. } => draw(&mut view, MEDKIT[index]),
                 Cell::Pass => continue,
                 Cell::Toggle { state, direction: toggle_direction, .. } => {
                     if state{

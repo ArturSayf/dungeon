@@ -76,6 +76,20 @@ pub fn draw_map(
                                 print!(".");
                             }
                         },
+                        Cell::Paper { .. } => {
+                            if let Cell::Paper { .. } = field[y][x] {
+                                print!("📄");
+                            } else {
+                                print!(".");
+                            }
+                        },
+                        Cell::Medkit { .. } => {
+                            if let Cell::Medkit { .. } = field[y][x] {
+                                print!("🚑");
+                            } else {
+                                print!(".");
+                            }
+                        },
                         Cell::Toggle { state, .. } => {
                             match state {
                                 true => print!("+"),
@@ -90,7 +104,7 @@ pub fn draw_map(
                                 SideOfTheWorld::West => print!("]"),
                             }
                         },
-                        Cell:: Box { .. } => print!("❒"),
+                        Cell::Box { .. } => print!("❒"),
                         Cell::Safe { .. } => print!("S"),
                         Cell::Exit { .. } => print!("E"),
                     }
