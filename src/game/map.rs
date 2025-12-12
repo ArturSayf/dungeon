@@ -1,7 +1,7 @@
 use crate::game::character::Character;
 use crate::game::field::{Cell, FIELD_WIDTH, FIELD_HEIGHT, MapVisibility, SideOfTheWorld};
 use crate::game::view::fpv;
-use std::io;
+use crate::game::{read_input};
 
 pub fn see_map(
     character: &Character, 
@@ -13,11 +13,9 @@ pub fn see_map(
     println!("v - убрать карту.");
     
     loop {
-        let mut input = String::new();
-        io::stdin().read_line(&mut input).expect("Ошибка ввода!");
-        let command = input.trim().to_lowercase();
+        let input = read_input("Введите команду: ");
         
-        match command.as_str() {
+        match input.as_str() {
             "v" => {
                 print!("\x1bc");
                 fpv(character, field);

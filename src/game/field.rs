@@ -67,8 +67,8 @@ impl fmt::Display for Cell {
     }
 }
 
-pub const FIELD_HEIGHT: usize = 10;
-pub const FIELD_WIDTH: usize = 20;
+pub const FIELD_HEIGHT: usize = 12;
+pub const FIELD_WIDTH: usize = 22;
 
 pub struct MapVisibility {
     pub discovered: [[bool; FIELD_WIDTH]; FIELD_HEIGHT],

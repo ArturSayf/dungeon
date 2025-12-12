@@ -1,4 +1,5 @@
 use crate::game::field::{Cell, Item, SideOfTheWorld, FIELD_WIDTH, FIELD_HEIGHT};
+use crate::game::{read_input};
 
 use std::io;
 
@@ -20,8 +21,8 @@ impl Character {
         }
     }
 
-    pub fn add_key(&mut self, key_number: u8) {
-        self.add_to_inventory(Item::Key(key_number));
+    pub fn add_item(&mut self, item: Item) {
+        self.add_to_inventory(item);
     }
 
     pub fn has_key(&self, door_number: u8) -> bool {
@@ -121,9 +122,7 @@ impl Character {
 
                 loop {
                     println!("Введите пароль (4 цифры) или 'x' для отмены:");
-                    let mut input = String::new();
-                    io::stdin().read_line(&mut input).expect("Ошибка ввода!");
-                    let input = input.trim();
+                    let input = read_input("Введите команду: ");
                 
                     if input == "x" {
                         return false;
@@ -213,17 +212,15 @@ impl Character {
             println!(" x - закрыть инвентарь");
             println!();
 
-            let mut input = String::new();
-            io::stdin().read_line(&mut input).expect("Ошибка ввода!");
-            let command = input.trim().to_lowercase();
+            let input = read_input("Введите команду: ");
 
-            match command.as_str() {
+            match input.as_str() {
                 "x" => break,
                 "r" => {
                     self.read_papers();
                 },
                 _ => {
-                    if !command.is_empty() {
+                    if !input.is_empty() {
                         println!("Неизвестная команда! Используйте 'r' или 'x'");
                         println!("Нажмите Enter чтобы продолжить...");
                         let _ = io::stdin().read_line(&mut String::new());
@@ -284,13 +281,10 @@ impl Character {
             println!("│ r - вернуться в инвентарь               │");
             println!("└─────────────────────────────────────────┘");
             println!();
-            print!(" > ");
 
-            let mut input = String::new();
-            io::stdin().read_line(&mut input).expect("Ошибка ввода!");
-            let command = input.trim().to_lowercase();
+            let input = read_input("Введите команду: ");
 
-            if command == "r" {
+            if input == "r" {
                 break;
             }
         }
@@ -435,20 +429,18 @@ impl Character {
         println!(" x   - закрыть контейнер");
         println!();
         
-        let mut input = String::new();
-        io::stdin().read_line(&mut input).expect("Ошибка ввода!");
-        let command = input.trim().to_lowercase();
+        let input = read_input("Введите команду: ");
         
         let message;
         
-        match command.as_str() {
+        match input.as_str() {
             "x" => {
                 message = "Контейнер закрыт.".to_string();
                 println!("{}", message);
                 break;
             },
             "1" | "2" | "3" | "4" | "5" => {
-                let index = command.parse::<usize>().unwrap() - 1;
+                let index = input.parse::<usize>().unwrap() - 1;
                 if index < box_items.len() {
                     if self.inventory.len() < 5 {
                         let item = box_items.remove(index);
@@ -563,8 +555,6 @@ impl Character {
         
         if !message.is_empty() {
             println!("{}", message);
-            println!("Нажмите Enter чтобы продолжить...");
-            let _ = io::stdin().read_line(&mut String::new());
         }
         }
     }
@@ -601,21 +591,21 @@ impl Character {
                 Cell::Key {number} => {
                     self.x = nx;
                     self.y = ny;
-                    self.add_key(*number);
+                    self.add_item(Item::Key(*number));
                     field[ny][nx] = Cell::Pass;
                     true
                 },
-                Cell::Paper { .. } => {
+                Cell::Paper { text } => {
                     self.x = nx;
                     self.y = ny;
-                    //self.add_key(*number);
+                    self.add_item(Item::Paper(text.clone()));
                     field[ny][nx] = Cell::Pass;
                     true
                 },
-                Cell::Medkit { .. } => {
+                Cell::Medkit { amount } => {
                     self.x = nx;
                     self.y = ny;
-                    //self.add_key(*number);
+                    self.add_item(Item::Medkit(*amount));
                     field[ny][nx] = Cell::Pass;
                     true
                 },
@@ -720,10 +710,6 @@ impl Character {
             SideOfTheWorld::West => (-1, 0),
         };
         let action_performed = self.interaction(dx, dy, field);
-        
-        if !action_performed {
-            println!("Здесь не с чем взаимодействовать.");
-        }
         action_performed
     }
 }

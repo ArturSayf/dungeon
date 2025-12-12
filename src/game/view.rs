@@ -22,10 +22,16 @@ pub fn fpv(character: &Character, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) {
     let mut view = [[' '; 26]; 14];
 
     for (index, (dx, dy)) in turn_fov.into_iter().enumerate() {
-        let nx = character.x as isize + dx;
-        let ny = character.y as isize + dy;
+        let nx = match character.x.checked_add_signed(dx) {
+          Some(v) => v,
+          None => continue,  
+        };
+        let ny = match character.y.checked_add_signed(dy) {
+          Some(v) => v,
+          None => continue,  
+        };
 
-        if nx >= 0 && nx < FIELD_WIDTH as isize && ny >= 0 && ny < FIELD_HEIGHT as isize {
+        if nx < FIELD_WIDTH && ny < FIELD_HEIGHT {
             match field[ny as usize][nx as usize] {
                 Cell::Wall => draw(&mut view, WALLS[index]),
                 Cell::Door { direction: door_direction, state, .. } => {
@@ -60,12 +66,12 @@ pub fn fpv(character: &Character, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) {
                     }
                 },
                 Cell::Box { .. } => draw(&mut view, BOX[index]),
-                Cell::Safe { state, direction, .. } => {
+                Cell::Safe { state, direction: safe_direction, .. } => {
                     if state {
-                        let safe_index = (direction as isize - character.side_of_the_world as isize).rem_euclid(4) as usize;
+                        let safe_index = (safe_direction as isize - character.side_of_the_world as isize).rem_euclid(4) as usize;
                         draw(&mut view, OPEN_SAFE[index][safe_index]);
                     } else {
-                        let safe_index = (direction as isize - character.side_of_the_world as isize).rem_euclid(4) as usize;
+                        let safe_index = (safe_direction as isize - character.side_of_the_world as isize).rem_euclid(4) as usize;
                         draw(&mut view, CLOSE_SAFE[index][safe_index]);
                     }
                 },

@@ -1,8 +1,7 @@
-use std::io;
 mod game;
 use game::{
     Command, Character, Cell, SideOfTheWorld, Item, 
-    FIELD_WIDTH, FIELD_HEIGHT, fpv, see_map, MapVisibility,
+    FIELD_WIDTH, FIELD_HEIGHT, fpv, see_map, MapVisibility, read_input
 };
 
 fn print_available_commands() { // вывод доступных команд
@@ -44,20 +43,22 @@ fn main() {
 
     // Инициализация поля
     let mut field: [[Cell; FIELD_WIDTH]; FIELD_HEIGHT] = [
-        [Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Safe { state: false, direction: SideOfTheWorld::East, password: 7148, items: vec![Item::Key(4)] }, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Exit { state: false, direction: SideOfTheWorld::North }, Cell::Wall],
-        [Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall],
-        [Cell::Wall, Cell::Wall, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Door { direction: SideOfTheWorld::West, number: 4, state: false }, Cell::Pass, Cell::Wall],
-        [Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Paper { text: paper_note_5 }, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Door { direction: SideOfTheWorld::South, number: 2, state: false }, Cell::Wall, Cell::Wall, Cell::Wall],
-        [Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Toggle { state: false, number: 2, direction: SideOfTheWorld::South }, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Box { items: vec![Item::Paper(paper_note_2)] }, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Toggle { state: false, number: 1, direction: SideOfTheWorld::South }, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Pass, Cell::Box { items: vec![Item::Paper(paper_note_3), Item::Key(2)] }],
-        [Cell::Box { items: vec![Item::Paper(paper_note_1), Item::Key(3)] }, Cell::LiftingGates { state: false, number: 2, direction: SideOfTheWorld::West }, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::LiftingGates { state: false, number: 1, direction: SideOfTheWorld::West }, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Door { direction: SideOfTheWorld::East, number: 1, state: false }, Cell::Pass, Cell::Wall],
-        [Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Wall],
-        [Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Door { direction: SideOfTheWorld::North, number: 3, state: false }, Cell::Wall, Cell::Wall, Cell::Wall],
-        [Cell::Wall, Cell::Wall, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Medkit {amount: 20}],
-        [Cell::Wall, Cell::Wall, Cell::Wall, Cell::Box { items: vec![Item::Paper(paper_note_4)] }, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Key { number: 1 }, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall],
+        [Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall],
+        [Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Safe { state: false, direction: SideOfTheWorld::East, password: 7148, items: vec![Item::Key(4)] }, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Exit { state: false, direction: SideOfTheWorld::North }, Cell::Wall, Cell::Wall],
+        [Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Wall],
+        [Cell::Wall, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Door { direction: SideOfTheWorld::West, number: 4, state: false }, Cell::Pass, Cell::Wall, Cell::Wall],
+        [Cell::Wall, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Paper { text: paper_note_5 }, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Door { direction: SideOfTheWorld::South, number: 2, state: false }, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall],
+        [Cell::Wall, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Toggle { state: false, number: 2, direction: SideOfTheWorld::South }, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Box { items: vec![Item::Paper(paper_note_2)] }, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Toggle { state: false, number: 1, direction: SideOfTheWorld::South }, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Pass, Cell::Box { items: vec![Item::Paper(paper_note_3), Item::Key(2)] }, Cell::Wall],
+        [Cell::Wall, Cell::Box { items: vec![Item::Paper(paper_note_1), Item::Key(3)] }, Cell::LiftingGates { state: false, number: 2, direction: SideOfTheWorld::West }, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::LiftingGates { state: false, number: 1, direction: SideOfTheWorld::West }, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Door { direction: SideOfTheWorld::East, number: 1, state: false }, Cell::Pass, Cell::Wall, Cell::Wall],
+        [Cell::Wall, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall],
+        [Cell::Wall, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Door { direction: SideOfTheWorld::North, number: 3, state: false }, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall],
+        [Cell::Wall, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Pass, Cell::Medkit {amount: 20}, Cell::Wall],
+        [Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Box { items: vec![Item::Paper(paper_note_4)] }, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Key { number: 1 }, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Pass, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall],
+        [Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall, Cell::Wall],
     ];
 
     // Инициализация персонажа
-    let mut character = Character::new(11, 4, SideOfTheWorld::South);
+    let mut character = Character::new(12, 5, SideOfTheWorld::South);
     // Инициализация карты
     let mut map_visibility = MapVisibility::new();
     map_visibility.update_visibility(character.x, character.y);
@@ -76,19 +77,17 @@ fn main() {
         );
 
         //ввод команды
-        let mut input = String::new();
-        io::stdin().read_line(&mut input).expect("Ошибка ввода!");
-        let command_str = input.trim().to_lowercase();
+        let input = read_input("Введите команду: ");
         let mut made_action = false;
 
         // вывод доступных команд
-        if command_str == "help" {
+        if input == "help" {
             print_available_commands();
             continue;
         }
 
         //вывод сообщения о вводе неверной команды
-        let command = match Command::from_str(&command_str) {
+        let command = match Command::from_str(&input) {
             Some(cmd) => cmd,
             None => {
                 println!("Неверная команда! Введите 'help' для списка команд.");
@@ -112,35 +111,23 @@ fn main() {
             }
             Command::Forward => { //шаг вперёд
                 if character.move_forward(&mut field) {
-                    map_visibility.update_visibility(character.x, character.y);
                     made_action = true;
-                } else {
-                    println!("Нельзя пройти!");
-                }
+                } 
             },
             Command::Back => { //шаг назад
                 if character.move_back(&mut field) {
-                    map_visibility.update_visibility(character.x, character.y);
                     made_action = true;
-                } else {
-                    println!("Нельзя пройти!");
-                }
+                } 
             },
             Command::Left => { //шаг влево
                 if character.move_left(&mut field) {
-                    map_visibility.update_visibility(character.x, character.y);
                     made_action = true;
-                } else {
-                    println!("Нельзя пройти!");
-                }
+                } 
             },
             Command::Right => { //шаг вправо
                 if character.move_right(&mut field) {
-                    map_visibility.update_visibility(character.x, character.y);
                     made_action = true;
-                } else {
-                    println!("Нельзя пройти!");
-                }
+                } 
             },
             Command::Map => { //посмотреть карту
                 if see_map(&character, &mut field, &map_visibility) {
@@ -149,11 +136,7 @@ fn main() {
             },
             Command::Action => {
                 if character.action(&mut field){
-                    map_visibility.update_visibility(character.x, character.y);
                     made_action = true;
-                }
-                else {
-                    continue;
                 }
             },
             Command::Inventory => {
@@ -174,37 +157,41 @@ fn main() {
         if made_action { //при успешном выполнении действия очищается терминал и заново рисуется картинка
             print!("\x1bc");
             fpv(&character, &field);
+            map_visibility.update_visibility(character.x, character.y);
 
             if check_exit(&character, &field) {
                 victory_screen();
-                let mut input = String::new();
-                io::stdin().read_line(&mut input).expect("Ошибка ввода!");
-                let command_str = input.trim().to_lowercase();
-                match command_str.as_str() {
+                let input = read_input("Введите команду: ");
+                match input.as_str() {
                     "q" => break,
                     "m" => break,
                     _ => println!("Неверная команда."),
                 }
             }
+
             if !character.inventory.is_empty() {
                 print!("В инвентаре: ");
                 let mut first = true;
                 for item in &character.inventory {
-                if !first {
-                    print!(", ");
-                }
-                match item {
-                Item::Key(number) => print!("Ключ №{}", number),
-                Item::Paper(..) => print!("Бумага"),
-                Item::Medkit(..) => print!("Аптечка"),
-                }
-                first = false;
-            }   
+                    if !first {
+                        print!(", ");
+                    }
+                    match item {
+                        Item::Key(number) => print!("Ключ №{}", number),
+                        Item::Paper(..) => print!("Бумага"),
+                        Item::Medkit(..) => print!("Аптечка"),
+                    }
+                    first = false;
+                }   
             }   
             println!();
             println!();
         }
-
-           
+        else {
+            match command {
+                Command::Action => continue,
+                _ => println!("Нельзя пройти!"),
+            };
+        }    
     }
 }
