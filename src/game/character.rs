@@ -3,12 +3,14 @@ use crate::game::{read_input};
 
 use std::io;
 
- #[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Character {
     pub x: usize,
     pub y: usize,
     pub side_of_the_world: SideOfTheWorld,
     pub inventory: Vec<Item>,
+    pub health: u8,
+    pub max_health: u8,
 }
 
 impl Character {
@@ -18,11 +20,24 @@ impl Character {
             y, 
             side_of_the_world: direction, 
             inventory: Vec::new(),
+            health: 80,
+            max_health: 100,
         }
     }
 
-    pub fn add_item(&mut self, item: Item) {
-        self.add_to_inventory(item);
+    pub fn is_alive(&self) -> bool {
+        self.health > 0
+    }
+
+    pub fn take_damage(&mut self, amount: u8) {
+        if amount >= self.health {
+            self.health = 0;
+            println!("Персонаж погиб!");
+        } else {
+            self.health -= amount;
+            println!("Получено {} урона! Осталось здоровья: {}/{}", 
+                     amount, self.health, self.max_health);
+        }
     }
 
     pub fn has_key(&self, door_number: u8) -> bool {
@@ -200,14 +215,15 @@ impl Character {
                     match item {
                         Item::Key(number) => println!(" │ {} - Ключ №{:<11} │", i + 1, number),
                         Item::Paper(_) => println!(" │ {} - Бумага{:11} │", i + 1, ""),
-                        Item::Medkit(_) => println!(" | {} - Аптечка{:10} |", i +1, ""),
+                        Item::Medkit(amount) => println!(" │ {} - Аптечка (+{:<2} HP) {:0} │", i +1, amount, ""),
                     }
                 }
                 println!("⁠└⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─⁠─┘");
             }
 
-            println!();
+            println!(" Здоровье: {:<3}/{}", self.health, self.max_health);
             println!(" КОМАНДЫ:");
+            println!(" 1-5 - использовать аптечку (если есть)");
             println!(" r - прочитать бумагу (если есть)");
             println!(" x - закрыть инвентарь");
             println!();
@@ -219,15 +235,49 @@ impl Character {
                 "r" => {
                     self.read_papers();
                 },
+                "1" | "2" | "3" | "4" | "5" => {
+                    let index = input.parse::<usize>().unwrap() - 1;
+                    if index < self.inventory.len() {
+                        if let Item::Medkit(amount) = self.inventory[index].clone() {
+                            self.use_medkit(index, amount);
+                        } else {
+                            println!("Это не аптечка!");
+                            println!("Нажмите Enter чтобы продолжить...");
+                            let _ = io::stdin().read_line(&mut String::new());
+                        }
+                    } else {
+                        println!("Неверный номер предмета!");
+                        println!("Нажмите Enter чтобы продолжить...");
+                        let _ = io::stdin().read_line(&mut String::new());
+                    }
+                },
                 _ => {
                     if !input.is_empty() {
-                        println!("Неизвестная команда! Используйте 'r' или 'x'");
+                        println!("Неизвестная команда! Используйте '1-5', 'r' или 'x'");
                         println!("Нажмите Enter чтобы продолжить...");
                         let _ = io::stdin().read_line(&mut String::new());
                     }
                 }
             }
         }
+    }
+
+    pub fn use_medkit(&mut self, index: usize, amount: u8) {
+        if self.health >= self.max_health {
+            println!("Здоровье уже максимальное!");
+            println!("Нажмите Enter чтобы продолжить...");
+            let _ = io::stdin().read_line(&mut String::new());
+            return;
+        }
+
+        self.inventory.remove(index);
+        let new_health = self.health as u16 + amount as u16;
+        self.health = new_health.min(self.max_health as u16) as u8;
+        
+        println!("Использована аптечка! +{} HP. Текущее здоровье: {}/{}", 
+                 amount, self.health, self.max_health);
+        println!("Нажмите Enter чтобы продолжить...");
+        let _ = io::stdin().read_line(&mut String::new());
     }
 
     pub fn read_papers(&self) {
@@ -296,11 +346,10 @@ impl Character {
             let mut current_line = String::new();
             
             for word in words {
-
                 let potential_length = if current_line.is_empty() {
                     word.len()
                 } else {
-                    current_line.len() + 1 + word.len() 
+                    current_line.len() + 1 + word.len()
                 };
 
                 if potential_length <= max_width {
@@ -344,12 +393,14 @@ impl Character {
         }   
     }
 
-    pub fn add_to_inventory(&mut self, item: Item) {
+    pub fn add_to_inventory(&mut self, item: Item) -> bool {
         if self.inventory.len() < 5 {
             self.inventory.push(item.clone());
             println!("Подобран предмет: {}", item);
+            true
         } else {
             println!("В инвентаре нет места.");
+            false
         }
     }
 
@@ -394,7 +445,7 @@ impl Character {
                 match &self.inventory[i] {
                     Item::Key(num) => format!("{} - Ключ №{}", i + 1, num),
                     Item::Paper(..) => format!("{} - Бумага", i + 1),
-                    Item::Medkit(..) => format!("{} - Аптечка", i + 1),
+                    Item::Medkit(amount) => format!("{} - Аптечка (+{} HP)", i + 1, amount),
                 }
             } else {
                 "".to_string()
@@ -404,7 +455,7 @@ impl Character {
                 match &box_items[i] {
                     Item::Key(num) => format!("{} - Ключ №{}", i + 1, num),
                     Item::Paper(..) => format!("{} - Бумага", i + 1),
-                    Item::Medkit(..) => format!("{} - Аптечка", i + 1),
+                    Item::Medkit(amount) => format!("{} - Аптечка (+{} HP)", i + 1, amount),
                 }
             } else {
                 "".to_string()
@@ -447,7 +498,7 @@ impl Character {
                         let item_name = match &item {
                             Item::Key(num) => format!("Ключ №{}", num),
                             Item::Paper(..) => "Бумага".to_string(),
-                            Item::Medkit(..) => "Аптечка".to_string(),
+                            Item::Medkit(amount) => format!("Аптечка (+{} HP)", amount),
                         };
                         self.inventory.push(item);
                         message = format!("Предмет '{}' будет перемещен в инвентарь.", item_name);
@@ -465,12 +516,12 @@ impl Character {
                         let item_name = match &item {
                             Item::Key(num) => format!("Ключ №{}", num),
                             Item::Paper(..) => "Бумага".to_string(),
-                            Item::Medkit(..) => "Аптечка".to_string(),
+                            Item::Medkit(amount) => format!("Аптечка (+{} HP)", amount),
                         };
                         box_items.push(item);
                         message = format!("Предмет '{}' будет перемещен в контейнер.", item_name);
                     } else {
-                        message = "Контейнер заполнен! Максимум 5 предмеов.".to_string();
+                        message = "Контейнер заполнен! Максимум 5 предметов.".to_string();
                     }
                 } else {
                     message = "В инвентаре нет предмета под номером 1!".to_string();
@@ -483,12 +534,12 @@ impl Character {
                         let item_name = match &item {
                             Item::Key(num) => format!("Ключ №{}", num),
                             Item::Paper(..) => "Бумага".to_string(),
-                            Item::Medkit(..) => "Аптечка".to_string(),
+                            Item::Medkit(amount) => format!("Аптечка (+{} HP)", amount),
                         };
                         box_items.push(item);
                         message = format!("Предмет '{}' будет перемещен в контейнер.", item_name);
                     } else {
-                        message = "Контейнер заполнен! Максимум 5 предмет.".to_string();
+                        message = "Контейнер заполнен! Максимум 5 предметов.".to_string();
                     }
                 } else {
                     message = "В инвентаре нет предмета под номером 2!".to_string();
@@ -501,7 +552,7 @@ impl Character {
                         let item_name = match &item {
                             Item::Key(num) => format!("Ключ №{}", num),
                             Item::Paper(..) => "Бумага".to_string(),
-                            Item::Medkit(..) => "Аптечка".to_string(),
+                            Item::Medkit(amount) => format!("Аптечка (+{} HP)", amount),
                         };
                         box_items.push(item);
                         message = format!("Предмет '{}' будет перемещен в контейнер.", item_name);
@@ -519,25 +570,25 @@ impl Character {
                         let item_name = match &item {
                             Item::Key(num) => format!("Ключ №{}", num),
                             Item::Paper(..) => "Бумага".to_string(),
-                            Item::Medkit(..) => "Аптечка".to_string(),
+                            Item::Medkit(amount) => format!("Аптечка (+{} HP)", amount),
                         };
                         box_items.push(item);
                         message = format!("Предмет '{}' будет перемещен в контейнер.", item_name);
                     } else {
-                        message = "Контейнер заполнен! Максимум 5 предметjd.".to_string();
+                        message = "Контейнер заполнен! Максимум 5 предметов.".to_string();
                     }
                 } else {
                     message = "В инвентаре нет предмета под номером 4!".to_string();
                 }
             },
             "e" => {
-                if self.inventory.len() >= 4 {
+                if self.inventory.len() >= 5 {
                     if box_items.len() < 5 {
                         let item = self.inventory.remove(4);
                         let item_name = match &item {
                             Item::Key(num) => format!("Ключ №{}", num),
                             Item::Paper(..) => "Бумага".to_string(),
-                            Item::Medkit(..) => "Аптечка".to_string(),
+                            Item::Medkit(amount) => format!("Аптечка (+{} HP)", amount),
                         };
                         box_items.push(item);
                         message = format!("Предмет '{}' будет перемещен в контейнер.", item_name);
@@ -559,8 +610,7 @@ impl Character {
         }
     }
 
-    pub fn valid_move(&mut self, dx: isize, dy: isize, field: &mut[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool{
-
+    pub fn valid_move(&mut self, dx: isize, dy: isize, field: &mut[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool {
         let nx = match self.x.checked_add_signed(dx) {
           Some(v) => v,
           None => return false,  
@@ -570,7 +620,7 @@ impl Character {
           None => return false,  
         };
 
-        if nx < FIELD_WIDTH && ny < FIELD_HEIGHT{
+        if nx < FIELD_WIDTH && ny < FIELD_HEIGHT {
             match &field[ny][nx] {
                 Cell::Wall => false,
                 Cell::Pass => {
@@ -591,22 +641,28 @@ impl Character {
                 Cell::Key {number} => {
                     self.x = nx;
                     self.y = ny;
-                    self.add_item(Item::Key(*number));
-                    field[ny][nx] = Cell::Pass;
+                    let picked_up = self.add_to_inventory(Item::Key(*number));
+                    if picked_up {
+                        field[ny][nx] = Cell::Pass;
+                    }
                     true
                 },
                 Cell::Paper { text } => {
                     self.x = nx;
                     self.y = ny;
-                    self.add_item(Item::Paper(text.clone()));
-                    field[ny][nx] = Cell::Pass;
+                    let picked_up = self.add_to_inventory(Item::Paper(text.clone()));
+                    if picked_up {
+                        field[ny][nx] = Cell::Pass;
+                    }
                     true
                 },
                 Cell::Medkit { amount } => {
                     self.x = nx;
                     self.y = ny;
-                    self.add_item(Item::Medkit(*amount));
-                    field[ny][nx] = Cell::Pass;
+                    let picked_up = self.add_to_inventory(Item::Medkit(*amount));
+                    if picked_up {
+                        field[ny][nx] = Cell::Pass;
+                    }
                     true
                 },
                 Cell::Toggle { .. } => false,
@@ -645,7 +701,6 @@ impl Character {
             SideOfTheWorld::East => self.valid_move(1, 0, field),
             SideOfTheWorld::West => self.valid_move(-1, 0, field),
         }
-
     }
 
     pub fn move_back(&mut self, field: &mut [[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool {

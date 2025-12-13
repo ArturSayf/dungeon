@@ -5,6 +5,7 @@ pub mod field;
 pub mod view;
 pub mod map;
 pub mod input;
+pub mod enemy; 
 
 pub use character::Character;
 pub use commands::Command;

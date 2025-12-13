@@ -150,7 +150,13 @@ fn main() {
                 //e
             },
             Command::UseMedkit => {
-                //e
+                let has_medkit = character.inventory.iter().any(|item| matches!(item, Item::Medkit(_)));
+                if has_medkit {
+                    character.manage_inventory();
+                    made_action = true;
+                } else {
+                    println!("В инвентаре нет аптечек!");
+                }
             },
         }
 
@@ -176,16 +182,17 @@ fn main() {
                     if !first {
                         print!(", ");
                     }
-                    match item {
-                        Item::Key(number) => print!("Ключ №{}", number),
-                        Item::Paper(..) => print!("Бумага"),
-                        Item::Medkit(..) => print!("Аптечка"),
-                    }
-                    first = false;
+                match item {
+                    Item::Key(number) => print!("Ключ №{}", number),
+                    Item::Paper(..) => print!("Бумага"),
+                    Item::Medkit(amount) => print!("Аптечка (+{} HP)", amount),
+                }
+                first = false;
                 }   
             }   
             println!();
-            println!();
+            println!("Здоровье: {}/{}", character.health, character.max_health);
+            println!();   
         }
         else {
             match command {
