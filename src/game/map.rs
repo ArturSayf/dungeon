@@ -1,15 +1,16 @@
 use crate::game::character::Character;
 use crate::game::field::{Cell, FIELD_WIDTH, FIELD_HEIGHT, MapVisibility, SideOfTheWorld};
 use crate::game::view::fpv;
-use crate::game::{read_input};
+use crate::game::{read_input, Enemy};
 
 pub fn see_map(
     character: &Character, 
     field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT],
-    map_visibility: &MapVisibility
+    map_visibility: &MapVisibility,
+    enemy: &[Enemy],
 ) -> bool {
     print!("\x1bc");
-    draw_map(character, field, map_visibility);
+    draw_map(character, field, map_visibility, enemy);
     println!("v - убрать карту.");
     
     loop {
@@ -18,7 +19,7 @@ pub fn see_map(
         match input.as_str() {
             "v" => {
                 print!("\x1bc");
-                fpv(character, field);
+                fpv(character, field, enemy);
                 return true;
             }
             _ => {
@@ -31,7 +32,8 @@ pub fn see_map(
 pub fn draw_map(
     character: &Character, 
     field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT],
-    map_visibility: &MapVisibility
+    map_visibility: &MapVisibility,
+    enemies: &[Enemy],
 ) {
     println!("Карта (обнаруженные области):");
     println!();
@@ -46,9 +48,24 @@ pub fn draw_map(
         print!("  ║");
         
         for x in 0..FIELD_WIDTH {
-            // Показывает только обнаруженные клетки
             if map_visibility.is_discovered(x, y) {
-                if character.x == x && character.y == y {
+                // Проверяем врагов
+                let mut enemy_at_pos = false;
+                let mut enemy_dead = false;
+                
+                for enemy in enemies {
+                    if enemy.x == x && enemy.y == y {
+                        enemy_at_pos = true;
+                        enemy_dead = !enemy.is_alive();
+                        break;
+                    }
+                }
+                
+                if enemy_at_pos && enemy_dead {
+                    // Труп врага
+                    print!("†");
+                } else if character.x == x && character.y == y {
+                    // Игрок
                     match character.side_of_the_world {
                         SideOfTheWorld::North => print!("^"),
                         SideOfTheWorld::South => print!("v"),
@@ -108,7 +125,6 @@ pub fn draw_map(
                     }
                 }
             } else {
-
                 print!(" ");
             }
         }

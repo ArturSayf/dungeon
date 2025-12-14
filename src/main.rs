@@ -1,10 +1,10 @@
 mod game;
 use game::{
-    Command, Character, Cell, SideOfTheWorld, Item, 
-    FIELD_WIDTH, FIELD_HEIGHT, fpv, see_map, MapVisibility, read_input
+    Command, Character, Cell, SideOfTheWorld, Item, Enemy, FIELD_WIDTH, FIELD_HEIGHT, fpv, see_map, MapVisibility, read_input
 };
+use rand::Rng;
 
-fn print_available_commands() { // вывод доступных команд
+fn print_available_commands() {
     println!("Доступные команды:");
     println!("  {} - движение вперед", Command::Forward);
     println!("  {} - движение назад", Command::Back);
@@ -16,6 +16,9 @@ fn print_available_commands() { // вывод доступных команд
     println!("  {} - посмотреть карту", Command::Map);
     println!("  {} - взаимодействие", Command::Action);
     println!("  {} - инвентарь", Command::Inventory);
+    println!("  {} - атаковать", Command::Attack);
+    println!("  {} - обыскать труп", Command::Loot);
+    println!("  {} - использовать аптечку", Command::UseMedkit);
 }
 
 fn check_exit(character: &Character, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool {
@@ -28,6 +31,17 @@ fn victory_screen(){
     println!("║             ПОБЕДА!            ║");
     println!("║    Поздравляем вы выбрались    ║");
     println!("║         из подземелья!         ║");
+    println!("╠⁠════════════════════════════════╣");
+    println!("║      q - Выход из игры.        ║");
+    println!("║     m - Вернуться в меню.      ║");
+    println!("╚⁠════════════════════════════════⁠╝");
+}
+
+fn game_over_screen() {
+    print!("\x1bc");
+    println!("╔════════════════════════════════⁠╗");
+    println!("║            ПРОИГРЫШ!           ║");
+    println!("║       Вы были побеждены!       ║");
     println!("╠⁠════════════════════════════════╣");
     println!("║      q - Выход из игры.        ║");
     println!("║     m - Вернуться в меню.      ║");
@@ -59,6 +73,11 @@ fn main() {
 
     // Инициализация персонажа
     let mut character = Character::new(12, 5, SideOfTheWorld::South);
+
+    let mut enemy = vec![
+        Enemy::new(8, 9, SideOfTheWorld::East),
+    ];
+
     // Инициализация карты
     let mut map_visibility = MapVisibility::new();
     map_visibility.update_visibility(character.x, character.y);
@@ -67,7 +86,7 @@ fn main() {
     print_available_commands();
     println!();
     //вывод изображения от 1-го лица
-    fpv(&character, &field);
+    fpv(&character, &field, &enemy);
     
     //основной цикл игры
     loop {
@@ -130,7 +149,7 @@ fn main() {
                 } 
             },
             Command::Map => { //посмотреть карту
-                if see_map(&character, &mut field, &map_visibility) {
+                if see_map(&character, &mut field, &map_visibility, &enemy) {
                     made_action = true;
                 }
             },
@@ -144,10 +163,48 @@ fn main() {
                 made_action = true;
             },
             Command::Attack => {
-                //e
+                let mut enemy_attacked = false;
+                for enemy in enemy.iter_mut() {
+                    if enemy.is_alive() && enemy.is_adjacent_to_player(&character) {
+                        let dx = enemy.x as isize - character.x as isize;
+                        let dy = enemy.y as isize - character.y as isize;
+                        
+                        let is_facing = match character.side_of_the_world {
+                            SideOfTheWorld::North => dx == 0 && dy == -1,
+                            SideOfTheWorld::South => dx == 0 && dy == 1,
+                            SideOfTheWorld::East => dx == 1 && dy == 0,
+                            SideOfTheWorld::West => dx == -1 && dy == 0,
+                        };
+                        
+                        if is_facing {
+                            let damage = rand::thread_rng().gen_range(5..=15);
+                            println!("Вы атакуете противника! Наносите {} урона!", damage);
+                            enemy.take_damage(damage);
+                            enemy_attacked = true;
+                            made_action = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if !enemy_attacked {
+                    println!("Нет врагов для атаки! Вы должны смотреть на врага и быть рядом с ним.");
+                }
             },
             Command::Loot => {
-                //e
+                let mut corpse_looted = false;
+                for enemy in enemy.iter_mut() {
+                    if !enemy.is_alive() && enemy.is_adjacent_to_player(&character) {
+                        enemy.loot_corpse(&mut character);
+                        corpse_looted = true;
+                        made_action = true;
+                        break;
+                    }
+                }
+                
+                if !corpse_looted {
+                    println!("Нет трупов для обыска рядом!");
+                }
             },
             Command::UseMedkit => {
                 let has_medkit = character.inventory.iter().any(|item| matches!(item, Item::Medkit(_)));
@@ -161,8 +218,30 @@ fn main() {
         }
 
         if made_action { //при успешном выполнении действия очищается терминал и заново рисуется картинка
+
+            for enemy in enemy.iter_mut() {
+                if enemy.is_alive() {
+                    enemy.update(&character, &mut field);
+                    
+                    // Проверяем атаку врага
+                    if enemy.is_adjacent_to_player(&character) {
+                        enemy.attack_player(&mut character);
+                        
+                        if !character.is_alive() {
+                            game_over_screen();
+                            let input = read_input("Введите команду: ");
+                            match input.as_str() {
+                                "q" => return,
+                                "m" => return,
+                                _ => println!("Неверная команда."),
+                            }
+                        }
+                    }
+                }
+            }
+
             print!("\x1bc");
-            fpv(&character, &field);
+            fpv(&character, &field, &enemy);
             map_visibility.update_visibility(character.x, character.y);
 
             if check_exit(&character, &field) {

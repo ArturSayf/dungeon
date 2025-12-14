@@ -1,9 +1,15 @@
 use crate::game::character::Character;
 use crate::game::field::{Cell, FIELD_WIDTH, FIELD_HEIGHT};
-use crate::game::images::{CLOSE_DOORS, OPEN_DOORS, TOGGLE_OFF, TOGGLE_ON, WALLS, CLOSE_LIFTING_GATES, OPEN_LIFTING_GATES, KEYS, PAPER, MEDKIT, BOX, CLOSE_SAFE, OPEN_SAFE, OPEN_EXIT, CLOSE_EXIT};
+use crate::game::images::{
+    CLOSE_DOORS, OPEN_DOORS, TOGGLE_OFF, TOGGLE_ON, WALLS, 
+    CLOSE_LIFTING_GATES, OPEN_LIFTING_GATES, KEYS, PAPER, 
+    MEDKIT, BOX, CLOSE_SAFE, OPEN_SAFE, OPEN_EXIT, CLOSE_EXIT, 
+    ENEMY
+};
 use crate::game::field::SideOfTheWorld;
+use crate::game::enemy::{Enemy, EnemyState};
 
-pub fn fpv(character: &Character, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) {
+pub fn fpv(character: &Character, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT], enemies: &[Enemy]) {
     #[rustfmt::skip]
     let fov = [
         (2, 3), (-2, 3), (1, 3), (-1, 3), (0, 3),
@@ -32,6 +38,28 @@ pub fn fpv(character: &Character, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) {
         };
 
         if nx < FIELD_WIDTH && ny < FIELD_HEIGHT {
+            // Сначала проверяем врагов
+            let mut enemy_found = false;
+            for enemy in enemies {
+                if enemy.x == nx && enemy.y == ny {
+                    match enemy.state {
+                        EnemyState::Dead => {
+                            draw(&mut view, BOX[index]);
+                        },
+                        EnemyState::Patrolling | EnemyState::Chasing => {
+                            let enemy_index = (enemy.side_of_the_world as isize - character.side_of_the_world as isize).rem_euclid(4) as usize;
+                            draw(&mut view, ENEMY[index][enemy_index]);
+                        }
+                    }
+                    enemy_found = true;
+                    break;
+                }
+            }
+            
+            if enemy_found {
+                continue;
+            }
+            
             match field[ny as usize][nx as usize] {
                 Cell::Wall => draw(&mut view, WALLS[index]),
                 Cell::Door { direction: door_direction, state, .. } => {

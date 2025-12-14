@@ -13,3 +13,4 @@ pub use field::{Cell, SideOfTheWorld, FIELD_WIDTH, FIELD_HEIGHT, MapVisibility, 
 pub use view::fpv;
 pub use map::{see_map};
 pub use input::{read_input};
+pub use enemy::{Enemy};
