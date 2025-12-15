@@ -94,6 +94,9 @@ fn main() {
             "Ваши координаты: {}.{}, направление на {}",
             character.x, character.y, character.side_of_the_world
         );
+        println!("Координаты противника: {}.{}, направление на {}",
+            enemy[0].x, enemy[0].y, enemy[0].side_of_the_world
+        );
 
         //ввод команды
         let input = read_input("Введите команду: ");

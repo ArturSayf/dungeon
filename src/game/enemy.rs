@@ -5,9 +5,9 @@ use crate::game::character::Character;
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum EnemyState {
-    Patrolling,    // Патрулирование
-    Chasing,       // Преследование
-    Dead,          // Труп
+    Patrolling,    
+    Chasing,       
+    Dead,          
 }
 
 #[derive(PartialEq, Debug, Clone)]
