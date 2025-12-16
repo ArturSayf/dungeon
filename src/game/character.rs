@@ -113,7 +113,7 @@ impl Character {
                     self.remove_key(*number);
                     true
                 } else {
-                    println!("Ключ не подходит! нужен ключ №{}", number);
+                    println!("Нужен ключ №{}", number);
                     false
                 }
             },
@@ -281,7 +281,6 @@ impl Character {
     }
 
     pub fn read_papers(&self) {
-        // все тексты из бумаг
         let papers: Vec<&String> = self.inventory.iter()
             .filter_map(|item| {
                 if let Item::Paper(text) = item {
@@ -302,26 +301,21 @@ impl Character {
             println!("│            СОДЕРЖАНИЕ БУМАГ             │");
             println!("├─────────────────────────────────────────┤");
 
-            // Максимальная ширина текста внутри рамки
             const MAX_LINE_WIDTH: usize = 68;
 
             for (i, text) in papers.iter().enumerate() {
                 println!("│ Записка {}:                              │", i + 1);
 
-                // Разбиваем текст на строки без разрыва слов
                 let lines = wrap_text_without_word_break(text, MAX_LINE_WIDTH);
 
-                // Вывод строк
                 for line in &lines {
                     println!("│ {:<39} │", line);
                 }
 
-                // пустой текст
                 if lines.is_empty() {
                     println!("│ (пусто)                                 │");
                 }
 
-                // разделитель между разными записками
                 if i < papers.len() - 1 {
                     println!("│                                         │");
                 }

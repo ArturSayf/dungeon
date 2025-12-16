@@ -146,14 +146,6 @@ fn start_level(level: Level) {
             "Ваши координаты: {}.{}, направление на {}",
             character.x, character.y, character.side_of_the_world
         );
-        
-        // Отображаем координаты всех живых врагов
-        for (i, e) in enemy.iter().enumerate() {
-            if e.is_alive() {
-                println!("Противник {}: {}.{}, направление на {}",
-                    i + 1, e.x, e.y, e.side_of_the_world);
-            }
-        }
 
         //ввод команды
         let input = read_input("Введите команду: ");
@@ -277,12 +269,11 @@ fn start_level(level: Level) {
             },
         }
 
-        if made_action { //при успешном выполнении действия очищается терминал и заново рисуется картинка
+        if made_action {
             for e in enemy.iter_mut() {
                 if e.is_alive() {
                     e.update(&character, &mut field);
                     
-                    // Проверяем атаку врага
                     if e.is_adjacent_to_player(&character) {
                         e.attack_player(&mut character);
                         
