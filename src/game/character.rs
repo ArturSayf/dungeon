@@ -1,5 +1,5 @@
-use crate::game::field::{Cell, Item, SideOfTheWorld, FIELD_WIDTH, FIELD_HEIGHT};
-use crate::game::{read_input};
+use crate::game::field::{Cell, Item, SideOfTheWorld};
+use crate::game::{read_input, FIELD_WIDTH, FIELD_HEIGHT};
 
 use std::io;
 

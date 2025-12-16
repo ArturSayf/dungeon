@@ -1,13 +1,13 @@
 use crate::game::character::Character;
-use crate::game::field::{Cell, FIELD_WIDTH, FIELD_HEIGHT};
+use crate::game::field::{Cell, SideOfTheWorld};
 use crate::game::images::{
     CLOSE_DOORS, OPEN_DOORS, TOGGLE_OFF, TOGGLE_ON, WALLS, 
     CLOSE_LIFTING_GATES, OPEN_LIFTING_GATES, KEYS, PAPER, 
     MEDKIT, BOX, CLOSE_SAFE, OPEN_SAFE, OPEN_EXIT, CLOSE_EXIT, 
-    ENEMY
+    ENEMY, DEAD_ENEMY,
 };
-use crate::game::field::SideOfTheWorld;
 use crate::game::enemy::{Enemy, EnemyState};
+use crate::game::{FIELD_WIDTH, FIELD_HEIGHT};
 
 pub fn fpv(character: &Character, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT], enemies: &[Enemy]) {
     #[rustfmt::skip]
@@ -44,7 +44,7 @@ pub fn fpv(character: &Character, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT], e
                 if enemy.x == nx && enemy.y == ny {
                     match enemy.state {
                         EnemyState::Dead => {
-                            draw(&mut view, BOX[index]);
+                            draw(&mut view, DEAD_ENEMY[index]);
                         },
                         EnemyState::Patrolling | EnemyState::Chasing => {
                             let enemy_index = (enemy.side_of_the_world as isize - character.side_of_the_world as isize).rem_euclid(4) as usize;

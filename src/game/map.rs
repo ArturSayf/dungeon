@@ -1,7 +1,8 @@
 use crate::game::character::Character;
-use crate::game::field::{Cell, FIELD_WIDTH, FIELD_HEIGHT, MapVisibility, SideOfTheWorld};
+use crate::game::field::{Cell, SideOfTheWorld};
 use crate::game::view::fpv;
-use crate::game::{read_input, Enemy};
+use crate::game::{read_input, Enemy, FIELD_WIDTH, FIELD_HEIGHT};
+use crate::game::MapVisibility;
 
 pub fn see_map(
     character: &Character, 
@@ -100,7 +101,7 @@ pub fn draw_map(
                         },
                         Cell::Medkit { .. } => {
                             if let Cell::Medkit { .. } = field[y][x] {
-                                print!("🚑");
+                                print!("🧰");
                             } else {
                                 print!(".");
                             }

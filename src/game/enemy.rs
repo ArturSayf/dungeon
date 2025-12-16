@@ -1,13 +1,14 @@
 use std::collections::VecDeque;
 use rand::Rng;
-use crate::game::field::{Cell, Item, SideOfTheWorld, FIELD_WIDTH, FIELD_HEIGHT};
+use crate::game::field::{Cell, Item, SideOfTheWorld};
 use crate::game::character::Character;
+use crate::game::{FIELD_WIDTH, FIELD_HEIGHT};
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum EnemyState {
-    Patrolling,    
-    Chasing,       
-    Dead,          
+    Patrolling,
+    Chasing,
+    Dead,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -21,6 +22,8 @@ pub struct Enemy {
     pub max_health: u8,
     pub last_known_player_pos: Option<(usize, usize)>,
     pub path_to_player: VecDeque<(usize, usize)>,
+    pub consecutive_failed_moves: u8,
+    pub hit_wall: bool,
 }
 
 impl Enemy {
@@ -35,6 +38,8 @@ impl Enemy {
             max_health: 50,
             last_known_player_pos: None,
             path_to_player: VecDeque::new(),
+            consecutive_failed_moves: 0,
+            hit_wall: false,
         }
     }
 
@@ -61,6 +66,7 @@ impl Enemy {
     }
 
     pub fn can_see_player(&self, player: &Character, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool {
+        
         let fov = [
             (2, 3), (-2, 3), (1, 3), (-1, 3), (0, 3),
             (1, 2), (-1, 2), (0, 2),
@@ -79,7 +85,8 @@ impl Enemy {
             let mut nx = self.x as isize;
             let mut ny = self.y as isize;
             
-            for _ in 0..3 {
+            
+            for _ in 0..3 { 
                 nx += dx;
                 ny += dy;
                 
@@ -87,10 +94,12 @@ impl Enemy {
                     break;
                 }
                 
+                
                 if let Cell::Wall = field[ny as usize][nx as usize] {
                     break;
                 }
-
+                
+                
                 if nx == player.x as isize && ny == player.y as isize {
                     return true;
                 }
@@ -105,22 +114,25 @@ impl Enemy {
         (self.y as isize - player.y as isize).abs() <= 1
     }
 
+    pub fn is_facing_player(&self, player: &Character) -> bool {
+        let dx = player.x as isize - self.x as isize;
+        let dy = player.y as isize - self.y as isize;
+        
+        match self.side_of_the_world {
+            SideOfTheWorld::North => dx == 0 && dy == -1,
+            SideOfTheWorld::South => dx == 0 && dy == 1,
+            SideOfTheWorld::East => dx == 1 && dy == 0,
+            SideOfTheWorld::West => dx == -1 && dy == 0,
+        }
+    }
+
     pub fn attack_player(&self, player: &mut Character) -> bool {
         if !self.is_adjacent_to_player(player) {
             return false;
         }
         
-        let dx = player.x as isize - self.x as isize;
-        let dy = player.y as isize - self.y as isize;
         
-        let is_facing = match self.side_of_the_world {
-            SideOfTheWorld::North => dx == 0 && dy == -1,
-            SideOfTheWorld::South => dx == 0 && dy == 1,
-            SideOfTheWorld::East => dx == 1 && dy == 0,
-            SideOfTheWorld::West => dx == -1 && dy == 0,
-        };
-        
-        if is_facing {
+        if self.is_facing_player(player) {
             let damage = rand::thread_rng().gen_range(5..=15);
             player.take_damage(damage);
             true
@@ -129,8 +141,85 @@ impl Enemy {
         }
     }
 
+    pub fn get_direction_to_player(&self, player: &Character) -> Option<SideOfTheWorld> {
+        let dx = player.x as isize - self.x as isize;
+        let dy = player.y as isize - self.y as isize;
+        
+        
+        if dx == 0 && dy < 0 {
+            Some(SideOfTheWorld::North)
+        } else if dx == 0 && dy > 0 {
+            Some(SideOfTheWorld::South)
+        } else if dx > 0 && dy == 0 {
+            Some(SideOfTheWorld::East)
+        } else if dx < 0 && dy == 0 {
+            Some(SideOfTheWorld::West)
+        } else {
+            
+            if dx.abs() > dy.abs() {
+                if dx > 0 {
+                    Some(SideOfTheWorld::East)
+                } else {
+                    Some(SideOfTheWorld::West)
+                }
+            } else {
+                if dy > 0 {
+                    Some(SideOfTheWorld::South)
+                } else {
+                    Some(SideOfTheWorld::North)
+                }
+            }
+        }
+    }
+
+    pub fn get_turn_direction(&self, target_direction: SideOfTheWorld) -> Option<&'static str> {
+        let current = self.side_of_the_world as isize;
+        let target = target_direction as isize;
+        
+        let diff = (target - current).rem_euclid(4);
+        
+        match diff {
+            1 => Some("right"), 
+            3 => Some("left"),  
+            2 => Some("around"), 
+            _ => None, 
+        }
+    }
+
+    pub fn can_move_forward(&self, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool {
+        let (dx, dy) = match self.side_of_the_world {
+            SideOfTheWorld::North => (0, -1),
+            SideOfTheWorld::South => (0, 1),
+            SideOfTheWorld::East => (1, 0),
+            SideOfTheWorld::West => (-1, 0),
+        };
+        
+        let nx = match self.x.checked_add_signed(dx) {
+            Some(v) => v,
+            None => return false,
+        };
+        
+        let ny = match self.y.checked_add_signed(dy) {
+            Some(v) => v,
+            None => return false,
+        };
+        
+        if nx >= FIELD_WIDTH || ny >= FIELD_HEIGHT {
+            return false;
+        }
+        
+        match &field[ny][nx] {
+            Cell::Wall => false,
+            Cell::Door { state, .. } => *state,
+            Cell::LiftingGates { state, .. } => *state,
+            Cell::Toggle { .. } | Cell::Box { .. } | Cell::Safe { .. } | Cell::Exit { .. } => false,
+            _ => true,
+        }
+    }
+
     pub fn find_path_to_player(&mut self, player: &Character, field: &[[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) {
         self.path_to_player.clear();
+        
         
         let mut visited = [[false; FIELD_WIDTH]; FIELD_HEIGHT];
         let mut queue = VecDeque::new();
@@ -141,6 +230,7 @@ impl Enemy {
         
         while let Some((x, y)) = queue.pop_front() {
             if x == player.x && y == player.y {
+                
                 let mut current = (x, y);
                 while let Some(prev) = parent[current.1][current.0] {
                     self.path_to_player.push_front(current);
@@ -149,7 +239,8 @@ impl Enemy {
                 break;
             }
             
-            let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+            
+            let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]; 
             
             for (dx, dy) in directions.iter() {
                 let nx = x as isize + dx;
@@ -183,29 +274,109 @@ impl Enemy {
         }
     }
 
-    pub fn move_towards(&mut self, target_x: usize, target_y: usize, field: &mut [[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool {
-        let dx = target_x as isize - self.x as isize;
-        let dy = target_y as isize - self.y as isize;
+    pub fn move_towards_player(&mut self, player: &Character, field: &mut [[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool {
         
-        if dx.abs() > dy.abs() {
-            if dx > 0 && self.valid_move(1, 0, field) {
-                return true;
-            } else if dx < 0 && self.valid_move(-1, 0, field) {
-                return true;
+        if let Some(target_dir) = self.get_direction_to_player(player) {
+            if self.side_of_the_world != target_dir {
+                
+                let turn_action = self.get_turn_direction(target_dir);
+                match turn_action {
+                    Some("left") => {
+                        self.turn_left();
+                        return true;
+                    },
+                    Some("right") => {
+                        self.turn_right();
+                        return true;
+                    },
+                    Some("around") => {
+                        self.turn_around();
+                        return true;
+                    },
+                    _ => {}, 
+                }
             }
         }
         
-        if dy > 0 && self.valid_move(0, 1, field) {
-            true
-        } else if dy < 0 && self.valid_move(0, -1, field) {
+        
+        if self.move_forward(field) {
+            self.consecutive_failed_moves = 0;
             true
         } else {
-            let directions = [(1, 0), (-1, 0), (0, 1), (0, -1)];
-            for (dx, dy) in directions.iter() {
-                if self.valid_move(*dx, *dy, field) {
-                    return true;
+            self.consecutive_failed_moves += 1;
+            
+            
+            if self.consecutive_failed_moves >= 2 {
+                let turn_action = rand::thread_rng().gen_range(0..3);
+                match turn_action {
+                    0 => self.turn_left(),
+                    1 => self.turn_right(),
+                    2 => self.turn_around(),
+                    _ => (),
+                }
+                self.consecutive_failed_moves = 0;
+                true
+            } else {
+                false
+            }
+        }
+    }
+
+    pub fn move_towards_last_known_pos(&mut self, field: &mut [[Cell; FIELD_WIDTH]; FIELD_HEIGHT]) -> bool {
+        if let Some((last_x, last_y)) = self.last_known_player_pos {
+            let dx = last_x as isize - self.x as isize;
+            let dy = last_y as isize - self.y as isize;
+            
+            
+            let target_dir = if dx == 0 && dy < 0 {
+                SideOfTheWorld::North
+            } else if dx == 0 && dy > 0 {
+                SideOfTheWorld::South
+            } else if dx > 0 && dy == 0 {
+                SideOfTheWorld::East
+            } else if dx < 0 && dy == 0 {
+                SideOfTheWorld::West
+            } else if dx.abs() > dy.abs() {
+                if dx > 0 { SideOfTheWorld::East } else { SideOfTheWorld::West }
+            } else {
+                if dy > 0 { SideOfTheWorld::South } else { SideOfTheWorld::North }
+            };
+            
+            
+            if self.side_of_the_world != target_dir {
+                let turn_action = self.get_turn_direction(target_dir);
+                match turn_action {
+                    Some("left") => {
+                        self.turn_left();
+                        return true;
+                    },
+                    Some("right") => {
+                        self.turn_right();
+                        return true;
+                    },
+                    Some("around") => {
+                        self.turn_around();
+                        return true;
+                    },
+                    _ => {}, 
                 }
             }
+            
+            
+            if self.move_forward(field) {
+                true
+            } else {
+                
+                let turn_action = rand::thread_rng().gen_range(0..3);
+                match turn_action {
+                    0 => self.turn_left(),
+                    1 => self.turn_right(),
+                    2 => self.turn_around(),
+                    _ => (),
+                }
+                true
+            }
+        } else {
             false
         }
     }
@@ -221,6 +392,7 @@ impl Enemy {
         };
 
         if nx < FIELD_WIDTH && ny < FIELD_HEIGHT {
+            
             self.interact_with_cell(nx, ny, field);
             
             match &field[ny][nx] {
@@ -295,6 +467,7 @@ impl Enemy {
             return;
         }
         
+        
         let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
         
         for (dx, dy) in directions.iter() {
@@ -322,47 +495,88 @@ impl Enemy {
         
         match self.state {
             EnemyState::Patrolling => {
+                
                 if self.can_see_player(player, field) {
                     self.state = EnemyState::Chasing;
                     self.last_known_player_pos = Some((player.x, player.y));
                     self.find_path_to_player(player, field);
                     return true;
                 }
-                
-                let action = rand::thread_rng().gen_range(0..4);
-                
-                match action {
-                    0 => { self.turn_left(); },
-                    1 => { self.turn_right(); },
-                    2 => { self.turn_around(); },
-                    3 => { self.move_forward(field); },
-                    _ => {},
+                if self.hit_wall {
+                    
+                    self.turn_around();
+                    self.hit_wall = false; 
+                    return true;
+                } else {
+                    
+                    if self.can_move_forward(field) {
+                        
+                        let action = rand::thread_rng().gen_range(0..100);
+                        
+                        if action < 80 {
+                            
+                            if self.move_forward(field) {
+                                return true;
+                            } else {
+                                
+                                self.hit_wall = true;
+                                return false;
+                            }
+                        } else {
+                            
+                            self.turn_around();
+                            self.hit_wall = true; 
+                            return true;
+                        }
+                    } else {
+                        
+                        self.hit_wall = true;
+                        return false; 
+                    }
                 }
-                
-                true
             }
             
             EnemyState::Chasing => {
+                
                 if self.can_see_player(player, field) {
                     self.last_known_player_pos = Some((player.x, player.y));
-                    self.find_path_to_player(player, field);
-
+                    
+                    
                     if self.is_adjacent_to_player(player) {
+                        
+                        if !self.is_facing_player(player) {
+                            
+                            if let Some(target_dir) = self.get_direction_to_player(player) {
+                                let turn_action = self.get_turn_direction(target_dir);
+                                match turn_action {
+                                    Some("left") => self.turn_left(),
+                                    Some("right") => self.turn_right(),
+                                    Some("around") => self.turn_around(),
+                                    _ => (),
+                                }
+                            }
+                        }
                         return true;
                     }
                     
-                    if let Some(next_pos) = self.path_to_player.pop_front() {
-                        self.move_towards(next_pos.0, next_pos.1, field);
-                    }
+                    
+                    self.move_towards_player(player, field);
                 } else {
+                    
                     if let Some((last_x, last_y)) = self.last_known_player_pos {
                         if self.x == last_x && self.y == last_y {
+                            
                             self.state = EnemyState::Patrolling;
                             self.last_known_player_pos = None;
                             self.path_to_player.clear();
+                            self.hit_wall = false; 
                         } else {
-                            self.move_towards(last_x, last_y, field);
+                            self.move_towards_last_known_pos(field);
                         }
+                    } else {
+                        
+                        self.state = EnemyState::Patrolling;
+                        self.hit_wall = false; 
                     }
                 }
                 
@@ -413,6 +627,7 @@ impl Enemy {
         if self.state != EnemyState::Dead || self.inventory.is_empty() {
             return false;
         }
+        
         
         loop {  
             print!("\x1bc");

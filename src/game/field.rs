@@ -1,4 +1,6 @@
 use std::fmt::{self};
+use crate::game::levels::{FIELD_WIDTH, FIELD_HEIGHT};
+
  #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum SideOfTheWorld {
     South,
@@ -34,7 +36,7 @@ impl fmt::Display for Item {
         }
     }
 }
-
+#[derive(Clone)]
 pub enum Cell {
     Wall,
     Pass,
@@ -66,9 +68,6 @@ impl fmt::Display for Cell {
         }
     }
 }
-
-pub const FIELD_HEIGHT: usize = 12;
-pub const FIELD_WIDTH: usize = 22;
 
 pub struct MapVisibility {
     pub discovered: [[bool; FIELD_WIDTH]; FIELD_HEIGHT],
