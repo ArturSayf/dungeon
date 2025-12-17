@@ -20,7 +20,7 @@ impl Character {
             y, 
             side_of_the_world: direction, 
             inventory: Vec::new(),
-            health: 80,
+            health: 100,
             max_health: 100,
         }
     }
